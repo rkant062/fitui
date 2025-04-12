@@ -19,12 +19,13 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB Atlas connected'))
   .catch((err) => console.log('Error connecting to MongoDB Atlas: ', err));
 
-// Define the User Schema
-const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-});
+  const UserSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    checklist: { type: [String], default: ['Push-ups', 'Jogging', 'Yoga', 'Cycling', 'Walking'] } // <-- new field
+  });
+  
 
 const User = mongoose.model('User', UserSchema);
 
@@ -206,72 +207,6 @@ app.post('/api/add-data', verifyToken, async (req, res) => {
   }
 });
 
-// API to update checklist tasks for a given user and day
-app.post('/api/update-checklist', verifyToken, async (req, res) => {
-  const { day, checklist } = req.body; // Expecting day and checklist array from the user
-
-  try {
-    const existingData = await Data.findOne({ userId: req.userId, day });
-
-    if (!existingData) {
-      return res.status(404).json({ error: 'No data found for the specified user and day' });
-    }
-
-    checklist.forEach((task) => {
-      const existingTask = existingData.checklist.find(t => t.task === task.task);
-      if (existingTask) {
-        existingTask.completed = task.completed;
-        existingTask.priority = task.priority;
-      } else {
-        existingData.checklist.push({ task: task.task, completed: task.completed, priority: task.priority });
-      }
-    });
-
-    existingData.checklist.sort((a, b) => a.priority - b.priority); // Sort tasks by priority
-
-    await existingData.save();
-
-    res.json({ message: 'Checklist updated successfully', data: existingData });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Error updating checklist');
-  }
-});
-
-// API to add a new task to the checklist for a user
-app.post('/api/add-checklist-task', verifyToken, async (req, res) => {
-  const { day, task, priority } = req.body;
-
-  if (!task) {
-    return res.status(400).json({ message: 'Task is required' });
-  }
-
-  try {
-    const existingData = await Data.findOne({ userId: req.userId, day });
-
-    if (!existingData) {
-      return res.status(404).json({ message: 'No data found for the specified user and day' });
-    }
-
-    const existingTask = existingData.checklist.find(t => t.task === task);
-
-    if (existingTask) {
-      return res.status(400).json({ message: 'Task already exists' });
-    }
-
-    const newTask = { task: task, completed: false, priority: priority || 1 };
-
-    existingData.checklist.push(newTask);
-    existingData.checklist.sort((a, b) => a.priority - b.priority);
-
-    await existingData.save();
-
-    res.json({ message: 'Task added successfully', data: existingData });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error adding task to the checklist' });
-  }
-});
 
 // API to fetch data for a specific user
 app.get('/api/data', verifyToken, async (req, res) => {
@@ -288,3 +223,66 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
+// --- checklist 
+
+
+app.get('/api/checklist', verifyToken, async (req, res) => {
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      res.json({ checklist: user.checklist });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Error fetching checklist' });
+    }
+  });
+
+  
+  app.post('/api/checklist/add', verifyToken, async (req, res) => {
+    const { task } = req.body;
+  
+    if (!task) {
+      return res.status(400).json({ message: 'Task is required' });
+    }
+  
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      if (!user.checklist.includes(task)) {
+        user.checklist.push(task);
+        await user.save();
+      }
+  
+      res.json({ checklist: user.checklist });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Error adding task to checklist' });
+    }
+  });
+
+  
+  app.delete('/api/checklist/delete', verifyToken, async (req, res) => {
+    const { task } = req.body;
+  
+    if (!task) {
+      return res.status(400).json({ message: 'Task is required' });
+    }
+  
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      user.checklist = user.checklist.filter(t => t !== task);
+      await user.save();
+  
+      res.json({ checklist: user.checklist });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Error deleting task from checklist' });
+    }
+  });
+  
