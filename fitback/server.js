@@ -23,8 +23,11 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    checklist: { type: [String], default: ['Push-ups', 'Jogging', 'Yoga', 'Cycling', 'Walking'] } // <-- new field
-  });
+    checklist: [{
+        task: String,                          // 'task' - Name of the task
+        completed: Boolean,                    // 'completed' - Boolean if task is marked as complete
+        priority: { type: Number, default: 1 }, // 'priority' - Numeric value for sorting
+      }], });
   
 
 const User = mongoose.model('User', UserSchema);
@@ -183,40 +186,128 @@ app.post('/api/add-bulk-data', verifyToken, async (req, res) => {
   }
 });
 
-// API to add single data (with checklist and userId)
-app.post('/api/add-data', verifyToken, async (req, res) => {
-  const { day, date, caloriesBurned, checklist } = req.body;
+app.patch('/api/data/update', verifyToken, async (req, res) => {
+    const { date, caloriesBurned, checklist } = req.body;
+  
+    if (!date) {
+      return res.status(400).json({ message: 'Date is required.' });
+    }
+   console.log('Received date:', date);
+    try {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+  
+      var entry = await Data.findOne({
+        userId: req.userId,
+        date: { $gte: startOfDay, $lte: endOfDay },
+      });
+  
+    
+      entry.caloriesBurned = parseInt(entry.caloriesBurned || 0) + parseInt(caloriesBurned || 0);
+      // Update calories burned
+  
+      // Update checklist task completion statuses
+      if (Array.isArray(checklist)) {
+        const checklistMap = new Map(
+          entry.checklist.map(task => [task.task.trim(), task])
+        );
+  
+        checklist.forEach(updatedTask => {
+          const taskName = updatedTask.task?.trim();
+          if (!taskName) return;
+  
+          const existingTask = checklistMap.get(taskName);
+          if (existingTask) {
+            existingTask.completed = updatedTask.completed ?? existingTask.completed;
+            existingTask.priority = updatedTask.priority ?? existingTask.priority;
+          }
+        });
+      }
+  
+      const updated = await entry.save();
+      return res.json({ message: 'Data updated successfully', data: updated });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Error updating data' });
+    }
+  });
 
-  try {
-    const newData = new Data({
-      userId: req.userId, // Attach the userId
-      day: day,
-      date: new Date(date),
-      caloriesBurned: caloriesBurned,
-      checklist: checklist.map(task => ({
-        task: task.task,
-        completed: task.completed,
-        priority: task.priority || 1,  // Default priority
-      })),
+  // API to fetch data for a specific user
+app.get('/api/test', async (req, res) => {
+
+      return res.json({"hi there": "hi there"});
     });
 
-    const savedRow = await newData.save();
-    res.json({ message: 'Data added successfully', data: savedRow });
-  } catch (err) {
-    res.status(500).send('Error adding data');
-  }
-});
+  
+// API to fetch data for a specific user
+app.get('/api/chart', verifyToken, async (req, res) => {
 
+       
+    
+        // Find today's entry for the user
+        let todayEntry = await Data.find({
+          userId: req.userId });
+
+          return res.json(todayEntry);
+        });
 
 // API to fetch data for a specific user
 app.get('/api/data', verifyToken, async (req, res) => {
-  try {
-    const data = await Data.find({ userId: req.userId }).sort({ date: -1 });
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: 'Error fetching data' });
-  }
-});
+    try {
+        const today = new Date();
+        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    
+        // Find today's entry for the user
+        let todayEntry = await Data.findOne({
+          userId: req.userId,
+          date: { $gte: startOfDay, $lte: endOfDay },
+        }).sort({ date: -1 });
+    
+        // If entry exists, update incomplete tasks and save
+        if (todayEntry && Array.isArray(todayEntry.checklist)) {
+          // Filter out incomplete tasks
+         // const incompleteTasks = todayEntry.checklist.filter(item => !item.completed);
+          
+          // Here, you can perform any additional operations like updating tasks if needed.
+          // For example, if you want to update the checklist status of any task, you can add logic here:
+          
+          // Update checklist if needed (e.g., you could check for updated tasks from the front end).
+        //   todayEntry.checklist = todayEntry.checklist.map(task => {
+        //     if (task.completed === false) {
+        //       // Optionally update the task status if needed
+        //       // For example, if you wanted to automatically mark certain tasks as completed
+        //       task.completed = true; // Mark as completed (optional logic here)
+        //     }
+        //     return task;
+        //   });
+    
+          // Save the updated checklist (if modified)
+         // await todayEntry.save();
+    
+          return res.json(todayEntry);
+        }
+    
+        // Fallback to user's default checklist if no entry found for today
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        const newData = new Data({
+            userId: req.userId,  // Store the userId from the token
+            day: today.toLocaleDateString('en-US', { weekday: 'long' }), // e.g., "Sunday"
+            date: today, // current date and time
+            caloriesBurned: 0,
+            checklist: user.checklist || [],
+          });
+          const saved = await newData.save();
+        return res.json(saved);
+    
+      } catch (err) {
+        console.error('Checklist fetch error:', err);
+        res.status(500).json({ message: 'Error fetching checklist' });
+      }
+    });
 
 // Start server
 const PORT = process.env.PORT || 5000;
@@ -230,17 +321,56 @@ app.listen(PORT, () => {
 
 app.get('/api/checklist', verifyToken, async (req, res) => {
     try {
+      const today = new Date();
+      const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+  
+      // Find today's entry for the user
+      let todayEntry = await Data.findOne({
+        userId: req.userId,
+        date: { $gte: startOfDay, $lte: endOfDay },
+      }).sort({ date: -1 });
+  
+      // If entry exists, update incomplete tasks and save
+      if (todayEntry && Array.isArray(todayEntry.checklist)) {
+        // Filter out incomplete tasks
+        const incompleteTasks = todayEntry.checklist.filter(item => !item.completed);
+        
+        // Here, you can perform any additional operations like updating tasks if needed.
+        // For example, if you want to update the checklist status of any task, you can add logic here:
+        
+        // Update checklist if needed (e.g., you could check for updated tasks from the front end).
+        todayEntry.checklist = todayEntry.checklist.map(task => {
+          if (task.completed === false) {
+            // Optionally update the task status if needed
+            // For example, if you wanted to automatically mark certain tasks as completed
+            task.completed = true; // Mark as completed (optional logic here)
+          }
+          return task;
+        });
+  
+        // Save the updated checklist (if modified)
+        await todayEntry.save();
+  
+        return res.json({
+          checklist: incompleteTasks,  // Returning incomplete tasks after the update
+        });
+      }
+  
+      // Fallback to user's default checklist if no entry found for today
       const user = await User.findById(req.userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
+      //const today = new Date();
+
+      return res.json({ checklist: user.checklist || [] });
   
-      res.json({ checklist: user.checklist });
     } catch (err) {
-      console.error(err);
+      console.error('Checklist fetch error:', err);
       res.status(500).json({ message: 'Error fetching checklist' });
     }
   });
-
   
+
   app.post('/api/checklist/add', verifyToken, async (req, res) => {
     const { task } = req.body;
   
@@ -249,20 +379,57 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
     }
   
     try {
-      const user = await User.findById(req.userId);
-      if (!user) return res.status(404).json({ message: 'User not found' });
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
   
-      if (!user.checklist.includes(task)) {
-        user.checklist.push(task);
-        await user.save();
+      // Check if there's an entry for today
+      let todayEntry = await Data.findOne({
+        userId: req.userId,
+        date: { $gte: today, $lte: endOfDay },
+      });
+  
+  
+      // If today's entry exists, update it
+      const exists = todayEntry.checklist.find(item => item.task === task);
+  
+      if (!exists) {
+        todayEntry.checklist.push({ task, completed: false, priority: 1 });
+        const updated = await todayEntry.save();
+        return res.json({ checklist: updated.checklist, message: 'Task added to today\'s checklist' });
       }
+      
+      res.status(400).json({ checklist: todayEntry.checklist, message: 'Task already exists' });
   
-      res.json({ checklist: user.checklist });
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: 'Error adding task to checklist' });
     }
   });
+  
+
+  app.patch('/api/checklist/update', verifyToken, async (req, res) => {
+    const { checklist } = req.body;
+  
+    if (!Array.isArray(checklist)) {
+      return res.status(400).json({ message: 'Checklist must be an array of strings' });
+    }
+  
+    try {
+      const user = await User.findById(req.userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      user.checklist = checklist;
+      await user.save();
+  
+      res.json({ message: 'Checklist updated successfully', checklist: user.checklist });
+    } catch (err) {
+      console.error('Error updating checklist:', err);
+      res.status(500).json({ message: 'Error updating checklist' });
+    }
+  });
+  
 
   
   app.delete('/api/checklist/delete', verifyToken, async (req, res) => {
@@ -273,16 +440,29 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
     }
   
     try {
-      const user = await User.findById(req.userId);
-      if (!user) return res.status(404).json({ message: 'User not found' });
-  
-      user.checklist = user.checklist.filter(t => t !== task);
-      await user.save();
-  
-      res.json({ checklist: user.checklist });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: 'Error deleting task from checklist' });
-    }
-  });
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+    
+        // Find today's data entry
+        const todayEntry = await Data.findOne({
+          userId: req.userId,
+          date: { $gte: startOfDay, $lte: endOfDay },
+        });
+    
+        if (!todayEntry) {
+          return res.status(404).json({ message: 'No data entry for today found' });
+        }
+    
+        // Remove the task from checklist
+        todayEntry.checklist = todayEntry.checklist.filter(t => t.task !== task);
+        await todayEntry.save();
+    
+        res.json({ message: 'Task removed from today\'s checklist', checklist: todayEntry.checklist });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error deleting task from today\'s checklist' });
+      }
+    });
   

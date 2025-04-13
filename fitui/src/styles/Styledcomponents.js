@@ -55,9 +55,33 @@ margin: 0 5px 10px 0;
   border-radius: 8px;
   transition: all 0.3s ease;
   &:focus {
-    outline: none;
+    outline: 1px solid #4CAF50;
     border-color: #4CAF50;
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+  }
+`;
+
+const LinkButton = styled.button`
+  background: none;
+  margin-bottom: 10px;
+  align-items: end;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 400;
+ 
+  display: flex;
+  justify-content: center;
+  color: #007BFF;
+  border: none;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0;
+  
+  &:hover {
+    color: #0056b3; // Darker shade for hover effect
+  }
+  &:focus {
+    outline: none;
   }
 `;
 
@@ -76,7 +100,7 @@ const ChecklistItem = styled.label`
 `;
 
 const NewTaskInput = styled.input`
-margin: 0 5px 20px 0;
+margin: 0 5px 10px 0;
   padding: 10px;
   font-size: 1rem;
   border: 1px solid #ddd;
@@ -107,11 +131,14 @@ const AddNewTaskButton = styled.button`
 `;
 
 const SubmitButton = styled.button`
-  width: 100px;
+  width: 170px;
+  height: 40px;
   padding: 12px;
   background-color: transparent;
   color: black;
-  
+  align-items: center;
+  display: flex;
+  justify-content: center;
   border: 2px solid rgba(72, 184, 180, 0.57);
   border-radius: 8px;
   font-size: 1.2rem;
@@ -239,6 +266,8 @@ export {
   ChartTitle,
   ChartContainer,
   AggregationSelect,
+    LinkButton,
+    
   RefreshButton,
   TaskWrapper,
   LoginForm,
