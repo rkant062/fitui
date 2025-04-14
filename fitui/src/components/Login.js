@@ -1,67 +1,57 @@
+// components/Login.js
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Input, LoginForm, LoginButton } from '../styles/Styledcomponents';
 
-const Login = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+const apiUrl = process.env.REACT_APP_API_URL;
 
-  const apiUrl = process.env.REACT_APP_API_URL;
+const Login = ({ onLoginSuccess, setErrorMessage }) => {
+  const [loginCredentials, setLoginCredentials] = useState({ email: '', password: '' });
 
-  const handleSubmit = async (e) => {
+  const handleLoginInputChange = (e) => {
+    const { name, value } = e.target;
+    setLoginCredentials((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setErrorMessage('');
-
     try {
-      // Make the login API request to the backend
-      const response = await axios.post(`${apiUrl}/api/login`, { email, password });
-      
-      // On success, save the token to localStorage
-      const { token } = response.data;
-      localStorage.setItem('auth_token', token);
+      const response = await axios.post(`${apiUrl}/api/login`, loginCredentials, {
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-      // Call the callback function to handle successful login
-      onLoginSuccess(token);
+      const { token, user } = response.data;
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('user_id', user._id);
+      localStorage.setItem('user_name', user.username);
+
+      onLoginSuccess(user); // Pass user data back to parent
     } catch (error) {
-      console.error(error);
-      setErrorMessage('Invalid email or password. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Login failed:', error);
+      setErrorMessage('Invalid credentials. Please try again.');
     }
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">Email:</label>
-          <input 
-            type="email" 
-            id="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-          />
-        </div>
-        <div>
-          <label htmlFor="password">Password:</label>
-          <input 
-            type="password" 
-            id="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-          />
-        </div>
-        <button type="submit" disabled={loading}>
-          {loading ? 'Logging in...' : 'Log In'}
-        </button>
-      </form>
-    </div>
+    <LoginForm onSubmit={handleLogin}>
+      <Input
+        type="email"
+        name="email"
+        placeholder="Email"
+        value={loginCredentials.email}
+        onChange={handleLoginInputChange}
+        required
+      />
+      <Input
+        type="password"
+        name="password"
+        placeholder="Password"
+        value={loginCredentials.password}
+        onChange={handleLoginInputChange}
+        required
+      />
+      <LoginButton type="submit">Login</LoginButton>
+    </LoginForm>
   );
 };
 

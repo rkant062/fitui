@@ -4,6 +4,8 @@ import { Line } from 'react-chartjs-2';
 import styled from 'styled-components';
 import Chart from 'chart.js/auto';
 import { groupByDay, groupByWeek, groupByMonth } from './Aggregation'
+import Login from './Login'; // Add this import
+import AppLayout from './AppLayout';
 import {
   Header,
   Caption,
@@ -39,7 +41,10 @@ const DeleteIcon = styled.span`
     
 `;
 
-const App = () => {
+
+const FinUI = ({ onLogout }) => {
+ 
+
   const [formData, setFormData] = useState({ caloriesBurned: 0, checklist: [] });
   const [checklistItems, setChecklistItems] = useState([]);
   const [newTask, setNewTask] = useState('');
@@ -53,7 +58,6 @@ const App = () => {
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loginCredentials, setLoginCredentials] = useState({ email: '', password: '' });
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -143,6 +147,11 @@ const App = () => {
     }
   };
   
+  const onLoginSuccess = (user) => {
+    setUserId(user._id);
+    setUserName(user.username);
+    setIsLoggedIn(true);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -305,35 +314,8 @@ const App = () => {
       }],
     });
   };
-  
-  
 
   
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post(`${apiUrl}/api/login`, loginCredentials, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const { token, user } = response.data;
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user_id', user._id);
-      localStorage.setItem('user_name', user.username);
-      setUserId(user._id);
-      setUserName(user.username);
-      setIsLoggedIn(true);
-    } catch (error) {
-      console.error('Login failed:', error);
-      setErrorMessage('Invalid credentials. Please try again.');
-    }
-  };
-
-  const handleLoginInputChange = (e) => {
-    const { name, value } = e.target;
-    setLoginCredentials((prev) => ({ ...prev, [name]: value }));
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_id');
@@ -369,16 +351,15 @@ const App = () => {
   
 
   return (
+    <AppLayout onLogout={onLogout}>
     <Container>
       <Caption>Welcome to FIT UI</Caption>
 
       {!isLoggedIn ? (
-        <LoginForm onSubmit={handleLogin}>
-          <Input type="email" name="email" placeholder="Email" value={loginCredentials.email} onChange={handleLoginInputChange} required />
-          <Input type="password" name="password" placeholder="Password" value={loginCredentials.password} onChange={handleLoginInputChange} required />
-          <LoginButton type="submit">Login</LoginButton>
-          {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-        </LoginForm>
+        <>
+        <Login onLoginSuccess={onLoginSuccess} setErrorMessage={setErrorMessage} />
+        {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
+      </>
       ) : (
         <div>
           <Header>Hi, {userName}</Header>
@@ -434,7 +415,7 @@ const App = () => {
                 )}
               </div>
               <div>
-              <Input type="number" name="caloriesBurned" onChange={handleInputChange} placeholder="Enter Calories Burned" required />
+              <Input type="number" name="caloriesBurned" onChange={handleInputChange} placeholder="Enter Calories Burned" />
               <Label>KCal</Label>
               </div>
               <SubmitButton type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</SubmitButton>  
@@ -462,7 +443,8 @@ const App = () => {
         </div>
       )}
     </Container>
+    </AppLayout>
   );
 };
 
-export default App;
+export default FinUI;

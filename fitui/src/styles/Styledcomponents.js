@@ -10,6 +10,10 @@ const Container = styled.div`
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   min-height: 100vh;
   box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
 `;
 
 const Header = styled.h2`
@@ -17,6 +21,11 @@ const Header = styled.h2`
   font-size: 1.5rem;
   color: #333;
   margin-left: 20px;
+
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+    margin-left: 10px;
+  }
 `;
 
 const Caption = styled.h1`
@@ -31,6 +40,11 @@ const Caption = styled.h1`
   letter-spacing: 0.5px;
   text-transform: uppercase;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+  @media (max-width: 768px) {
+    font-size: 1.6rem;
+    margin-left: 10px;
+  }
 `;
 
 const Form = styled.form`
@@ -43,21 +57,29 @@ const Form = styled.form`
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   width: 100%;
   box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
 `;
 
 const Input = styled.input`
-margin: 0 5px 10px 0;
-
-    width: 180px;
+  margin: 0 5px 10px 0;
+  width: 180px;
   padding: 10px;
   font-size: 1rem;
   border: 1px solid #ddd;
   border-radius: 8px;
   transition: all 0.3s ease;
+
   &:focus {
     outline: 1px solid #4CAF50;
     border-color: #4CAF50;
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+  }
+
+  @media (max-width: 768px) {
+
   }
 `;
 
@@ -68,7 +90,6 @@ const LinkButton = styled.button`
   font-family: 'Poppins', sans-serif;
   font-size: 0.8rem;
   font-weight: 400;
- 
   display: flex;
   justify-content: center;
   color: #007BFF;
@@ -78,10 +99,14 @@ const LinkButton = styled.button`
   padding: 0;
   
   &:hover {
-    color: #0056b3; // Darker shade for hover effect
+    color: #0056b3;
   }
   &:focus {
     outline: none;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
   }
 `;
 
@@ -89,28 +114,39 @@ const ChecklistItem = styled.label`
   align-items: center;
   font-size: 1rem;
   cursor: pointer;
+
   input {
     margin-right: 10px;
   }
+
   &:hover {
     background-color: rgba(166, 212, 162, 0.4);
     border-radius: 8px;
   }
+
   transition: all 0.3s ease;
+
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
 `;
 
 const NewTaskInput = styled.input`
-margin: 0 5px 10px 0;
+  margin: 0 5px 10px 0;
   padding: 10px;
   font-size: 1rem;
   border: 1px solid #ddd;
   border-radius: 8px;
   width: 180px;
   transition: all 0.3s ease;
+
   &:focus {
     outline: none;
     border-color: #4CAF50;
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+  }
+
+  @media (max-width: 768px) {
   }
 `;
 
@@ -124,9 +160,13 @@ const AddNewTaskButton = styled.button`
   cursor: pointer;
   width: 100px;
   transition: all 0.3s ease;
+
   &:hover {
     background-color: rgba(45, 245, 92, 0.62);
     box-shadow: 0 0 8px rgba(34, 255, 126, 0.3);
+  }
+
+  @media (max-width: 768px) {
   }
 `;
 
@@ -144,8 +184,12 @@ const SubmitButton = styled.button`
   font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.3s ease;
+
   &:hover {
-    background-color: rgba(25, 255, 152, 0.57);
+    background-color: rgba(251, 251, 251, 0.57);
+  }
+
+  @media (max-width: 768px) {
   }
 `;
 
@@ -155,6 +199,11 @@ const ChartWrapper = styled.div`
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   height: 400px;
+
+  @media (max-width: 768px) {
+    height: auto;
+    padding: 15px;
+  }
 `;
 
 const ChartTitle = styled.h2`
@@ -163,6 +212,10 @@ const ChartTitle = styled.h2`
   color: #333;
   text-align: center;
   margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    font-size: 1.4rem;
+  }
 `;
 
 const ChartContainer = styled.div`
@@ -172,15 +225,23 @@ const ChartContainer = styled.div`
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   height: 100%;
+
+  @media (max-width: 768px) {
+    height: auto;
+  }
 `;
 
 const AggregationSelect = styled.select`
-margin-left: 20px;
+  margin-left: 20px;
   padding: 10px;
   float: left;
   font-size: 1rem;
   border: 1px solid #ddd;
   border-radius: 8px;
+
+  @media (max-width: 768px) {
+    margin-left: 0;
+  }
 `;
 
 const RefreshButton = styled.button`
@@ -194,9 +255,13 @@ const RefreshButton = styled.button`
   cursor: pointer;
   margin-right: 5px;
   transition: all 0.3s ease;
+
   &:hover {
     background-color: rgba(45, 245, 92, 0.15);
     box-shadow: 0 0 8px rgba(34, 255, 126, 0.3);
+  }
+
+  @media (max-width: 768px) {
   }
 `;
 
@@ -212,6 +277,10 @@ const TaskWrapper = styled.div`
   @media (min-width: 768px) {
     grid-template-columns: 1fr 1fr;
   }
+
+  @media (max-width: 768px) {
+    padding: 10px;
+  }
 `;
 
 const LoginForm = styled.form`
@@ -223,6 +292,11 @@ const LoginForm = styled.form`
   max-width: 300px;
   margin: 0 auto;
   text-align: center;
+
+  @media (max-width: 768px) {
+    padding: 15px;
+    max-width: 90%;
+  }
 `;
 
 const LoginButton = styled.button`
@@ -236,22 +310,31 @@ const LoginButton = styled.button`
   &:hover {
     background-color: #45a049;
   }
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
 `;
 
 export const Label = styled.label`
   align-items: center;
   font-size: 1rem;
-    margin-bottom: 10px;      
+  margin-bottom: 10px;
+
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
 `;
 
-
-export const CheckList= styled.div`
+export const CheckList = styled.div`
   display: block;
-    align-items: center;
-    margin-bottom: 10px;
+  align-items: center;
+  margin-bottom: 10px;
 
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
 `;
-
 
 export {
   Container,
@@ -266,8 +349,7 @@ export {
   ChartTitle,
   ChartContainer,
   AggregationSelect,
-    LinkButton,
-    
+  LinkButton,
   RefreshButton,
   TaskWrapper,
   LoginForm,
