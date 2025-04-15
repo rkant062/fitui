@@ -33,8 +33,10 @@ const Login = ({ onLoginSuccess, setErrorMessage }) => {
   };
 
   return (
+    <div style={{ display: 'inline-grid', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', alignContent: 'center' }}>
     <LoginForm onSubmit={handleLogin}>
       <Input
+        style ={{ width: '300px' }}
         type="email"
         name="email"
         placeholder="Email"
@@ -43,6 +45,7 @@ const Login = ({ onLoginSuccess, setErrorMessage }) => {
         required
       />
       <Input
+      style ={{ width: '300px' }}
         type="password"
         name="password"
         placeholder="Password"
@@ -50,8 +53,11 @@ const Login = ({ onLoginSuccess, setErrorMessage }) => {
         onChange={handleLoginInputChange}
         required
       />
-      <LoginButton type="submit">Login</LoginButton>
+      <LoginButton 
+      style={{ width: '300px', marginLeft: '10px' }}
+      type="submit">Login</LoginButton>
     </LoginForm>
+    </div>
   );
 };
 

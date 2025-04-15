@@ -11,6 +11,7 @@ import {
   Container,
   Form,
   Input,
+  TaskWrapper,
   AddNewTaskButton,
   SubmitButton,
   ChartWrapper,
@@ -194,7 +195,7 @@ const FinUI = (onLogout) => {
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
             </AggregationSelect>
-
+            <TaskWrapper>
             <Form onSubmit={handleSubmit} style={{ display: 'inline-block', width: '100%' }}>
               <h3>Add Expenses</h3>
               {expenseEntries.map((entry, index) => (
@@ -323,8 +324,11 @@ const FinUI = (onLogout) => {
                 </ChartWrapper>
               </>
             )}
+         
+          </TaskWrapper>
           </>
         )}
+       
       </Container>
     </AppLayout>
   );
