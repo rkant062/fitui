@@ -3,7 +3,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import styled from 'styled-components';
 import { FiActivity, FiBarChart2, FiHome, FiLogOut } from 'react-icons/fi';
-
+import { useNavigate } from 'react-router-dom';
 const SidebarContainer = styled.div`
   background-color: #1f2937;
   color: white;
@@ -62,6 +62,17 @@ const SidebarItem = styled(NavLink)`
 `;
 
 const Sidebar = ({ isCollapsed }) => {
+const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_name');s
+
+    // Redirect to login page
+    navigate('/login');
+  };
+
   return (
     <SidebarContainer isCollapsed={isCollapsed}>
       <SidebarItem to="/" exact>
@@ -76,7 +87,7 @@ const Sidebar = ({ isCollapsed }) => {
         <FiBarChart2 />
         <span>Fin UI</span>
       </SidebarItem>
-      <SidebarItem to="/logout">
+      <SidebarItem to="/login">
         <FiLogOut />
         <span>Logout</span>
       </SidebarItem>

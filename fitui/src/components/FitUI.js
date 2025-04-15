@@ -315,7 +315,6 @@ const FitUI = ({ onLogout }) => {
     });
   };
 
-  
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_id');
@@ -324,6 +323,7 @@ const FitUI = ({ onLogout }) => {
     setUserId(null);
     setUserName('');
   };
+
 
   const handleSetDefaultChecklist = async () => {
     const token = localStorage.getItem('auth_token');
@@ -363,14 +363,15 @@ const FitUI = ({ onLogout }) => {
       ) : (
         <div>
           <Header>Hi, {userName}</Header>
+          <div>
           <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
-          <RefreshButton onClick={fetchData}>Manual Refresh</RefreshButton>
+          <RefreshButton onClick={fetchData}>Refresh</RefreshButton>
           <AggregationSelect onChange={(e) => setAggregationOption(e.target.value)} value={aggregationOption}>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
           </AggregationSelect>
-
+          </div>
           <TaskWrapper>
             <Form onSubmit={handleSubmit}>
               

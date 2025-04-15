@@ -160,6 +160,7 @@ const AddNewTaskButton = styled.button`
   cursor: pointer;
   width: 100px;
   transition: all 0.3s ease;
+  margin-bottom: 10px;
 
   &:hover {
     background-color: rgba(45, 245, 92, 0.62);
@@ -170,6 +171,22 @@ const AddNewTaskButton = styled.button`
   }
 `;
 
+const AddNewTaskButton_v2 = styled.button`
+    padding: 10px 10px;
+    background-color:  '#2196F3' ;
+    color: black;
+    border: none;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 10px;
+    width: 38px;
+    height: 38px;
+
+  @media (max-width: 768px) {
+  }
+`;
 const SubmitButton = styled.button`
   width: 170px;
   height: 40px;
@@ -235,12 +252,11 @@ const AggregationSelect = styled.select`
   margin-left: 20px;
   padding: 10px;
   float: left;
-  font-size: 1rem;
   border: 1px solid #ddd;
   border-radius: 8px;
 
   @media (max-width: 768px) {
-    margin-left: 0;
+    margin-left: 10px;
   }
 `;
 
@@ -354,5 +370,6 @@ export {
   TaskWrapper,
   LoginForm,
   LoginButton,
-  Caption
+  Caption,
+  AddNewTaskButton_v2
 };

@@ -23,6 +23,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    categories: [{ type: String }],
     checklist: [{
         task: String,                          // 'task' - Name of the task
         completed: Boolean,                    // 'completed' - Boolean if task is marked as complete
@@ -46,6 +47,15 @@ const DataSchema = new mongoose.Schema({
 });
 
 const Data = mongoose.model('Data', DataSchema);
+
+const ExpenseSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  amount: { type: Number, required: true },
+  category: { type: String, required: true },
+  date: { type: Date, default: Date.now },
+});
+
+const Expense = mongoose.model('Expense', ExpenseSchema);
 
 // API to create a new user
 app.post('/api/create-user', async (req, res) => {
@@ -466,3 +476,109 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
       }
     });
   
+    app.post('/api/expenses', verifyToken, async (req, res) => {
+      const { expenses } = req.body;
+    
+      if (!Array.isArray(expenses)) {
+        return res.status(400).json({ message: 'Expenses should be an array' });
+      }
+    
+      try {
+        const enriched = expenses.map(exp => ({
+          ...exp,
+          userId: req.userId,
+          date: new Date(exp.date || Date.now()),
+        }));
+    
+        const saved = await Expense.insertMany(enriched);
+        res.json({ message: 'Expenses added successfully', data: saved });
+      } catch (err) {
+        console.error('Error adding expenses:', err);
+        res.status(500).json({ message: 'Failed to add expenses' });
+      }
+    });
+    
+    app.get('/api/expenses', verifyToken, async (req, res) => {
+      try {
+        const expenses = await Expense.find({ userId: req.userId }).sort({ date: 1 });
+        res.json(expenses);
+      } catch (err) {
+        console.error('Error fetching expenses:', err);
+        res.status(500).json({ message: 'Failed to fetch expenses' });
+      }
+    });
+    
+    app.get('/api/expenses/categories', verifyToken, async (req, res) => {
+      try {
+        const userExpenses = await Expense.find({ userId: req.userId }).select('category');
+        const categories = [...new Set(userExpenses.map(e => e.category))];
+        res.json(categories);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        res.status(500).json({ message: 'Failed to fetch categories' });
+      }
+    });
+    
+    app.post('/api/expenses/categories', verifyToken, async (req, res) => {
+      const { category } = req.body;
+      if (!category || typeof category !== 'string') {
+        return res.status(400).json({ message: 'Invalid category' });
+      }
+    
+      try {
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+    
+        if (!user.categories) user.categories = [];
+    
+        if (!user.categories.includes(category)) {
+          user.categories.push(category);
+          await user.save();
+        }
+    
+        res.json({ message: 'Category added', categories: user.categories });
+      } catch (err) {
+        console.error('Add category error:', err);
+        res.status(500).json({ message: 'Failed to add category' });
+      }
+    });
+    
+    app.get('/api/expenses/chart/:type', verifyToken, async (req, res) => {
+      const { type } = req.params;
+    
+      const groupFormat = {
+        daily: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+        weekly: { $dateToString: { format: "%Y-%U", date: "$date" } }, // Year-week number
+        monthly: { $dateToString: { format: "%Y-%m", date: "$date" } },
+      }[type];
+    
+      if (!groupFormat) return res.status(400).json({ message: 'Invalid aggregation type' });
+    
+      try {
+        const aggregated = await Expense.aggregate([
+          { $match: { userId: new mongoose.Types.ObjectId(req.userId) } },
+          {
+            $group: {
+              _id: groupFormat,
+              total: { $sum: "$amount" },
+              categories: {
+                $push: {
+                  category: "$category",
+                  amount: "$amount"
+                }
+              }
+            }
+          },
+          { $sort: { _id: 1 } }
+        ]);
+    
+        res.json(aggregated);
+      } catch (err) {
+        console.error('Aggregation error:', err);
+        res.status(500).json({ message: 'Error aggregating data' });
+      }
+    });
+    
+    
+    // === Expense
+    

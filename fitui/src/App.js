@@ -44,11 +44,11 @@ function App() {
         />
         <Route
           path="/fin"
-          element={isLoggedIn ? <FinUI /> : <Navigate to="/" />}
+          element={isLoggedIn ? <FinUI onLogout={handleLogout} /> : <Navigate to="/" />}
         />
         <Route
           path="/fit"
-          element={isLoggedIn ? <FitUI /> : <Navigate to="/" />}
+          element={isLoggedIn ? <FitUI onLogout={handleLogout} /> : <Navigate to="/" />}
         />
         {/* Add other protected routes here */}
       </Routes>

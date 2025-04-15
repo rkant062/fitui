@@ -3,61 +3,38 @@ import axios from 'axios';
 import { Line } from 'react-chartjs-2';
 import styled from 'styled-components';
 import Chart from 'chart.js/auto';
-import { groupByDay, groupByWeek, groupByMonth } from './Aggregation'
-import Login from './Login'; // Add this import
 import AppLayout from './AppLayout';
+import Login from './Login';
 import {
   Header,
   Caption,
-    LinkButton,
   Container,
   Form,
   Input,
-  ChecklistItem,
-  NewTaskInput,
   AddNewTaskButton,
   SubmitButton,
-  TaskWrapper,
   ChartWrapper,
-  ChartTitle,
-  CheckList,
-  Label,
   ChartContainer,
   RefreshButton,
   AggregationSelect,
-  LoginForm,
-  LoginButton
+  AddNewTaskButton_v2
 } from '../styles/Styledcomponents';
+import { groupByDay, groupByWeek, groupByMonth } from './Aggregation';
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
-const DeleteIcon = styled.span`
-  color: black;
-  cursor: pointer;
-  float: right;
-  &:hover {
-    color: darkred;
-  }
-    
-`;
-
-
-const FinUI = ({ onLogout }) => {
- 
-
-  const [formData, setFormData] = useState({ caloriesBurned: 0, checklist: [] });
-  const [checklistItems, setChecklistItems] = useState([]);
-  const [newTask, setNewTask] = useState('');
+const FinUI = (onLogout) => {
+  const [expenseEntries, setExpenseEntries] = useState([{ amount: '', category: '' }]);
+  const [categories, setCategories] = useState([]);
+  const [newCategory, setNewCategory] = useState('');
   const [data, setData] = useState([]);
-  const [dataVerb, setdataVerb] = useState([]);
   const [chartData, setChartData] = useState({ labels: [], datasets: [] });
-  const [totalJobsData, setTotalJobsData] = useState({ labels: [], datasets: [] });
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [categoryChartData, setCategoryChartData] = useState({ labels: [], datasets: [] });
   const [aggregationOption, setAggregationOption] = useState('daily');
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -72,250 +49,22 @@ const FinUI = ({ onLogout }) => {
   }, []);
 
   useEffect(() => {
-    if (userId) {
-      fetchData();
-      fetchChartData();
-    }
+    if (userId) fetchChartData();
   }, [userId]);
-  
 
   useEffect(() => {
-    if (dataVerb?.length > 0) {
-      updateChart(dataVerb, aggregationOption);
-      updateTotalJobsChart(dataVerb, aggregationOption);
+    if (data.length > 0) {
+      updateTotalExpenseChart(data, aggregationOption);
+      updateCategoryBreakdownChart(data, aggregationOption);
     }
-  }, [dataVerb, aggregationOption]);
+  }, [data, aggregationOption]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-
-
-  const handleChecklistChange = (e, item) => {
-    const { checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      checklist: checked
-        ? [...prev.checklist, item]
-        : prev.checklist.filter(i => i !== item),
-    }));
-  };
-
-  const handleNewTaskChange = (e) => setNewTask(e.target.value);
-
-  const handleAddNewTask = async () => {
-    const token = localStorage.getItem('auth_token');
-    if (!token || !newTask) return;
-  
-    try {
-      const res = await axios.post(`${apiUrl}/api/checklist/add`, { task: newTask }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-  
-      setChecklistItems(res.data.checklist || []);
-      setNewTask('');
-    } catch (err) {
-      console.error('Error adding task:', err);
-      setErrorMessage('Failed to add task.');
-    }
-  };
-  
-  const handleDeleteTask = async (taskToDelete) => {
-    const token = localStorage.getItem('auth_token');
-    if (!token || !userId) return;
-  
-    try {
-      const res = await axios.delete(`${apiUrl}/api/checklist/delete`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        data: { task: taskToDelete.task },
-      });
-  
-      setChecklistItems(res.data.checklist || []);
-      setFormData(prev => ({
-        ...prev,
-        checklist: prev.checklist.filter(task => task !== taskToDelete),
-      }));
-    } catch (error) {
-      console.error('Error deleting task from server:', error);
-      setErrorMessage('Failed to delete task.');
-    }
-  };
-  
   const onLoginSuccess = (user) => {
     setUserId(user._id);
     setUserName(user.username);
     setIsLoggedIn(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-  
-    const currentDate = new Date();
-    const date = currentDate.toISOString();
-  
-    const enrichedChecklist = formData.checklist.map(taskName => {
-      // Find the task in checklistItems that matches the taskName from the formData
-      const taskObj = checklistItems.find(item => item.task === taskName);
-    
-      // If the task exists, return the updated task with the completed status
-      if (taskObj) {
-        return {
-          ...taskObj,
-          completed: true, // Mark the task as completed
-        };
-      }
-    
-      // If the task doesn't exist in checklistItems, return null or skip it
-      return null;
-    }).filter(task => task !== null); // Filter out null values
-    
-    const payload = {
-      date,
-      caloriesBurned: formData.caloriesBurned,
-      checklist: enrichedChecklist,
-    };
-  
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      setErrorMessage('Authentication token is missing. Please log in.');
-      setLoading(false);
-      return;
-    }
-  
-    try {
-      await axios.patch(`${apiUrl}/api/data/update`, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      fetchData();
-    } catch (error) {
-      console.error('Error updating data:', error);
-      setErrorMessage('Error updating data. Please try again.');
-    } finally {
-      setLoading(false);
-      
-      setFormData({ caloriesBurned: 0, checklist: [] });
-      setNewTask('');
-      fetchData();
-    }
-  };
-  
-  const fetchData = async () => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-
-    try {
-      const response = await axios.get(`${apiUrl}/api/data`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setData(response.data);
-      setChecklistItems(response.data.checklist || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setErrorMessage('Error fetching data. Please try again.');
-    }
-  };
-
-  const fetchChartData = async () => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-
-    try {
-      const response = await axios.get(`${apiUrl}/api/chart`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setdataVerb(response.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setErrorMessage('Error fetching data. Please try again.');
-    }
-  };
-
-  const updateChart = (data, aggregation) => {
-    let labels = [];
-    let values = [];
-
-    if (aggregation === 'daily') {
-      const dailyData = groupByDay(data);
-      labels = Object.keys(dailyData);
-      values = labels.map(day => dailyData[day].reduce((sum, item) => sum + item.caloriesBurned, 0));
-    } else if (aggregation === 'weekly') {
-      const weeklyData = groupByWeek(data);
-      labels = Object.keys(weeklyData);
-      values = labels.map(week => weeklyData[week].reduce((sum, item) => sum + item.caloriesBurned, 0));
-    } else if (aggregation === 'monthly') {
-      const monthlyData = groupByMonth(data);
-      labels = Object.keys(monthlyData);
-      values = labels.map(month => monthlyData[month].reduce((sum, item) => sum + item.caloriesBurned, 0));
-    }
-
-    setChartData({
-      labels,
-      datasets: [{
-        label: 'Calories Burned Over Time',
-        data: values,
-        borderColor: '#4CAF50',
-        borderWidth: 2,
-        fill: false,
-      }],
-    });
-  };
-
-  const updateTotalJobsChart = (data, aggregation) => {
-    let labels = [];
-    let percentages = [];
-  
-    const calculatePercentage = (entries) => {
-      const maxChecklistLength = Math.max(...entries.map(entry => entry.checklist?.length || 0), 1); // Prevent 0
-      const totalPossible = entries.length * maxChecklistLength;
-      const totalCompleted = entries.reduce((sum, entry) => sum + (entry.checklist?.length || 0), 0);
-      return Math.round((totalCompleted / totalPossible) * 100);
-    };
-  
-    if (aggregation === 'daily') {
-      const dailyData = groupByDay(dataVerb);
-      labels = Object.keys(dailyData).sort((a, b) => new Date(dailyData[a][0].date) - new Date(dailyData[b][0].date));
-      percentages = labels.map(day => calculatePercentage(dailyData[day]));
-  
-    } else if (aggregation === 'weekly') {
-      const weeklyData = groupByWeek(dataVerb);
-      labels = Object.keys(weeklyData).sort((a, b) => new Date(weeklyData[a][0].date) - new Date(weeklyData[b][0].date));
-      percentages = labels.map(week => calculatePercentage(weeklyData[week]));
-  
-    } else if (aggregation === 'monthly') {
-      const monthlyData = groupByMonth(dataVerb);
-      labels = Object.keys(monthlyData).sort((a, b) => new Date(monthlyData[a][0].date) - new Date(monthlyData[b][0].date));
-      percentages = labels.map(month => calculatePercentage(monthlyData[month]));
-    }
-  
-    setTotalJobsData({
-      labels,
-      datasets: [{
-        label: 'Checklist Completion (%)',
-        data: percentages,
-        borderColor: '#2196F3',
-        borderWidth: 2,
-        fill: false,
-        pointBackgroundColor: '#2196F3',
-        tension: 0.2,
-      }],
-    });
-  };
-
-  
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_id');
@@ -325,105 +74,242 @@ const FinUI = ({ onLogout }) => {
     setUserName('');
   };
 
-  const handleSetDefaultChecklist = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
     const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
+    const currentDate = new Date().toISOString();
+    const validExpenses = expenseEntries.filter(e => e.amount && e.category);
+
+    const payload = validExpenses.map(item => ({
+      date: currentDate,
+      amount: parseFloat(item.amount),
+      category: item.category,
+    }));
+
     try {
-      const response = await axios.patch(
-        `${apiUrl}/api/checklist/update`,
-        { checklist: checklistItems },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`, // replace with your actual token variable
-          },
-        }
-      );
-  
-      if (response.status === 200) {
-        alert('Checklist set as default successfully!');
-      } else {
-        alert(response.data.message || 'Failed to update default checklist');
-      }
-    } catch (error) {
-      console.error('Error updating default checklist:', error);
-      alert('Something went wrong while setting the default checklist.');
+      await axios.post(`${apiUrl}/api/expenses`, { expenses: payload }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setExpenseEntries([{ amount: '', category: '' }]);
+      fetchChartData();
+    } catch (err) {
+      console.error('Submit error:', err);
+    } finally {
+      setLoading(false);
     }
   };
-  
+
+  const fetchChartData = async () => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
+    try {
+      const res = await axios.get(`${apiUrl}/api/expenses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setData(res.data);
+      const uniqueCats = [...new Set(res.data.map(d => d.category))];
+      setCategories(uniqueCats);
+    } catch (err) {
+      console.error('Fetch chart error:', err);
+    }
+  };
+
+  const updateTotalExpenseChart = (data, aggregation) => {
+    const grouped = groupByTime(data, aggregation);
+    const labels = Object.keys(grouped);
+    const values = labels.map(date => grouped[date].reduce((sum, e) => sum + e.amount, 0));
+
+    setChartData({
+      labels,
+      datasets: [{
+        label: 'Total Expenses',
+        data: values,
+        borderColor: '#4CAF50',
+        borderWidth: 2,
+        fill: false,
+      }],
+    });
+  };
+
+  const updateCategoryBreakdownChart = (data, aggregation) => {
+    const grouped = groupByTime(data, aggregation);
+    const labels = Object.keys(grouped);
+    const categoryMap = {};
+
+    labels.forEach(label => {
+      const entries = grouped[label];
+      entries.forEach(entry => {
+        if (!categoryMap[entry.category]) {
+          categoryMap[entry.category] = [];
+        }
+      });
+    });
+
+    Object.keys(categoryMap).forEach(cat => {
+      categoryMap[cat] = labels.map(label =>
+        (grouped[label] || []).reduce((sum, entry) => entry.category === cat ? sum + entry.amount : sum, 0)
+      );
+    });
+
+    const datasets = Object.keys(categoryMap).map((cat, index) => ({
+      label: cat,
+      data: categoryMap[cat],
+      borderColor: getColor(index),
+      fill: false,
+      tension: 0.3,
+    }));
+
+    setCategoryChartData({ labels, datasets });
+  };
+
+  const groupByTime = (data, aggregation) => {
+    if (aggregation === 'daily') return groupByDay(data);
+    if (aggregation === 'weekly') return groupByWeek(data);
+    return groupByMonth(data);
+  };
+
+  const getColor = (i) => ['#FF6384', '#36A2EB', '#FFCE56', '#8E44AD', '#2ECC71'][i % 5];
 
   return (
     <AppLayout onLogout={onLogout}>
-    <Container>
-      <Caption>Welcome to FIT UI</Caption>
-
-      {!isLoggedIn ? (
-        <>
-        <Login onLoginSuccess={onLoginSuccess} setErrorMessage={setErrorMessage} />
-        {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-      </>
-      ) : (
-        <div>
+      <Container>
+        <Caption>Welcome to Expense Tracker</Caption>
+        {!isLoggedIn ? (
+          <Login onLoginSuccess={onLoginSuccess} />
+        ) : (
+          <>
           <Header>Hi, {userName}</Header>
-          <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
-          <RefreshButton onClick={fetchData}>Manual Refresh</RefreshButton>
-          <AggregationSelect onChange={(e) => setAggregationOption(e.target.value)} value={aggregationOption}>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </AggregationSelect>
+            <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
+            <RefreshButton onClick={fetchChartData}>Refresh Data</RefreshButton>
+            <AggregationSelect
+              onChange={(e) => setAggregationOption(e.target.value)}
+              value={aggregationOption}
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </AggregationSelect>
 
-          <TaskWrapper>
-            <Form onSubmit={handleSubmit}>
-              
-              <div>
-                <h3>Select Your Activities:</h3>
-                <div>
-                <NewTaskInput type="text" value={newTask} onChange={handleNewTaskChange} placeholder="Add new task" />
-                <AddNewTaskButton
-  type="button"
-  onClick={handleAddNewTask}
->
-  Add task
-</AddNewTaskButton>
-<LinkButton type="button" onClick={handleSetDefaultChecklist}>
-  Set as Default Checklist
-</LinkButton>
-              </div>
-              {checklistItems.filter(item => !item.completed).length > 0 ? (
-  checklistItems.filter(item => !item.completed).map((item) => (
-    <CheckList key={item._id}>
-      <ChecklistItem>
-        <input
-          type="checkbox"
-          checked={formData.checklist.includes(item.task)}
-          onChange={(e) => handleChecklistChange(e, item.task)}
-        />
-        <span>{item.task}</span>
-      </ChecklistItem>
-                    <DeleteIcon onClick={() => handleDeleteTask(item)}>
-                      <span role="img" aria-label="delete">
-                        <img
-                          src="https://img.icons8.com/?size=15&id=99961&format=png&color=9f9f9f"
-                          alt="delete"
-                        />
-                      </span>
-                    </DeleteIcon>
-                  </CheckList>
-                ))                      
-                   
-                ) : (
-                  <p>No checklist items. Add a new one below.</p>
-                )}
-              </div>
-              <div>
-              <Input type="number" name="caloriesBurned" onChange={handleInputChange} placeholder="Enter Calories Burned" />
-              <Label>KCal</Label>
-              </div>
-              <SubmitButton type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</SubmitButton>  
+            <Form onSubmit={handleSubmit} style={{ display: 'inline-block', width: '100%' }}>
+              <h3>Add Expenses</h3>
+              {expenseEntries.map((entry, index) => (
+  <div key={index} style={{ marginBottom: '12px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+    <Input
+      type="number"
+      placeholder="Amount"
+      value={entry.amount}
+      onChange={(e) => {
+        const updated = [...expenseEntries];
+        updated[index].amount = e.target.value;
+        setExpenseEntries(updated);
+      }}
+    />
+    <button
+        type="button"
+        onClick={() => {
+          const updated = [...expenseEntries];
+          updated.splice(index, 1);
+          setExpenseEntries(updated);
+        }}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'red',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+        }}
+      >
+        ✕
+      </button>
 
+<div
+  style={{
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '2px',
+    margin: '2px',
+  }}
+>      {categories.map((cat) => (
+        <span
+          key={cat}
+          onClick={() => {
+            const updated = [...expenseEntries];
+            updated[index].category = cat;
+            setExpenseEntries(updated);
+          }}
+          style={{
+            padding: '5px 10px',
+            borderRadius: '20px',
+            backgroundColor: cat === entry.category ? '#2196F3' : '#ccc',
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+          }}
+        >
+          {cat}
+        </span>
+        
+      ))}
+    </div>
+    
+    
+
+    {/* <div style={{ marginTop: '5px', display: 'flex', alignItems: 'center' }}>
+      <span style={{ flex: 1, fontSize: '0.9rem', color: '#555' }}>
+        Selected: {entry.category || 'None'}
+      </span>
+      
+    </div> */}
+    
+
+    {/* Only show add button on the last entry */}
+    {index === expenseEntries.length - 1 && (
+      <AddNewTaskButton_v2
+      style={{
+        backgroundColor: '#2196F3',
+    
+      }}
+        type="button"
+        onClick={() => setExpenseEntries([...expenseEntries, { amount: '', category: '' }])}
+      >
+        +
+      </AddNewTaskButton_v2>
+    )}
+  </div>
+))}
+<div style={{ marginTop: '20px' }}>
+  <h4>Manage Categories</h4>
+  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+    <Input
+      type="text"
+      placeholder="New category"
+      value={newCategory}
+      onChange={(e) => setNewCategory(e.target.value)}
+    />
+    <AddNewTaskButton_v2
+      type="button"
+      onClick={() => {
+        if (newCategory.trim() && !categories.includes(newCategory)) {
+          setCategories([...categories, newCategory.trim()]);
+          setNewCategory('');
+        }
+      }}
+    >
+      + 
+    </AddNewTaskButton_v2>
+  </div>
+</div>
+              <SubmitButton type="submit" disabled={loading}>
+                {loading ? 'Submitting...' : 'Submit'}
+              </SubmitButton>
             </Form>
-            
 
-            {dataVerb.length > 0 ? (
+            {data.length > 0 && (
               <>
                 <ChartWrapper>
                   <ChartContainer>
@@ -432,17 +318,14 @@ const FinUI = ({ onLogout }) => {
                 </ChartWrapper>
                 <ChartWrapper>
                   <ChartContainer>
-                    <Line data={totalJobsData} />
+                    <Line data={categoryChartData} />
                   </ChartContainer>
                 </ChartWrapper>
               </>
-            ) : (
-              <p>No data available to display</p>
             )}
-          </TaskWrapper>
-        </div>
-      )}
-    </Container>
+          </>
+        )}
+      </Container>
     </AppLayout>
   );
 };
