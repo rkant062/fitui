@@ -173,14 +173,13 @@ const AddNewTaskButton = styled.button`
 
 const AddNewTaskButton_v2 = styled.button`
     padding: 10px 10px;
-    background-color:  '#2196F3' ;
+    background-color: rgba(32, 255, 147, 0.24);
     color: black;
     border: none;
     border-radius: 50%;
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin: 10px;
     width: 38px;
     height: 38px;
 
@@ -188,24 +187,19 @@ const AddNewTaskButton_v2 = styled.button`
   }
 `;
 const SubmitButton = styled.button`
-  width: 170px;
-  height: 40px;
+  width: 135px;
+  height: 38px;
   padding: 12px;
-  background-color: transparent;
+  background-color: rgba(25, 255, 152, 0.57);
   color: black;
   align-items: center;
   display: flex;
+  border: none;
   justify-content: center;
-  border: 2px solid rgba(72, 184, 180, 0.57);
   border-radius: 8px;
   font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.3s ease;
-
-  &:hover {
-    background-color: rgba(251, 251, 251, 0.57);
-  }
-
   @media (max-width: 768px) {
   }
 `;

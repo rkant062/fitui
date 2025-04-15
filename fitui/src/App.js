@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Home from './components/HomePage';
 import FinUI from './components/FinUI';
 import FitUI from './components/FitUI';
+import Signup from './components/Signup';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -51,6 +52,10 @@ function App() {
           element={isLoggedIn ? <FitUI onLogout={handleLogout} /> : <Navigate to="/" />}
         />
         {/* Add other protected routes here */}
+
+
+<Route path="/signup" element={<Signup onSignupSuccess={setUserName} setErrorMessage={() => {}} />} />
+
       </Routes>
     </Router>
   );

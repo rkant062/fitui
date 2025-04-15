@@ -28,6 +28,7 @@ import {
   LoginForm,
   LoginButton
 } from '../styles/Styledcomponents';
+import Spinner from './Spinner';
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
@@ -419,7 +420,7 @@ const FitUI = ({ onLogout }) => {
               <Input type="number" name="caloriesBurned" onChange={handleInputChange} placeholder="Enter Calories Burned" />
               <Label>KCal</Label>
               </div>
-              <SubmitButton type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</SubmitButton>  
+              <SubmitButton type="submit" disabled={loading}>{loading ? <Spinner/> : 'Submit'}</SubmitButton>  
 
             </Form>
             
