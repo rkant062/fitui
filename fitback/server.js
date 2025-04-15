@@ -23,7 +23,10 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    categories: [{ type: String }],
+    category: [{
+      name: { type: String, required: true },
+      budget: { type: Number, default: 0 },
+    }],
     checklist: [{
         task: String,                          // 'task' - Name of the task
         completed: Boolean,                    // 'completed' - Boolean if task is marked as complete
@@ -52,6 +55,7 @@ const ExpenseSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   amount: { type: Number, required: true },
   category: { type: String, required: true },
+  description: { type: String },
   date: { type: Date, default: Date.now },
 });
 
@@ -510,8 +514,8 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
     
     app.get('/api/expenses/categories', verifyToken, async (req, res) => {
       try {
-        const userExpenses = await Expense.find({ userId: req.userId }).select('category');
-        const categories = [...new Set(userExpenses.map(e => e.category))];
+        const users = await User.findById(req.userId);    
+            const categories = users.category;
         res.json(categories);
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -520,7 +524,7 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
     });
     
     app.post('/api/expenses/categories', verifyToken, async (req, res) => {
-      const { category } = req.body;
+      const { category, budget } = req.body;
       if (!category || typeof category !== 'string') {
         return res.status(400).json({ message: 'Invalid category' });
       }
@@ -529,12 +533,18 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
         const user = await User.findById(req.userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
     
-        if (!user.categories) user.categories = [];
+        if (!user.category) user.category.push({
+          name: category,
+          budget: budget || 0,
+        });
     
-        if (!user.categories.includes(category)) {
-          user.categories.push(category);
-          await user.save();
+        const existingCategory = user.category.find(c => c.name === category);
+        if (existingCategory) {
+          existingCategory.budget = budget || 0;
+        } else {
+          user.category.push({ name: category, budget: budget || 0 });
         }
+        await user.save();
     
         res.json({ message: 'Category added', categories: user.categories });
       } catch (err) {
@@ -579,6 +589,22 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
       }
     });
     
+    app.delete('/api/expenses/categories/:name', verifyToken, async (req, res) => {
+      const { name } = req.params;
+    
+      try {
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+    
+        user.category = user.category.filter(cat => cat.name !== name);
+        await user.save();
+    
+        res.json({ message: 'Category deleted', categories: user.categories });
+      } catch (err) {
+        console.error('Delete category error:', err);
+        res.status(500).json({ message: 'Failed to delete category' });
+      }
+    });
+    
     
     // === Expense
-    
