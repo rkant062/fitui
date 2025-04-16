@@ -5,6 +5,7 @@ import { Input, LoginForm, LoginButton } from '../styles/Styledcomponents';
 import Spinner from './Spinner';
 
 const apiUrl = process.env.REACT_APP_API_URL;
+const logoSrc = 'https://img.icons8.com/?size=100&id=58926&format=png&color=000000';
 
 const Signup = ({ onSignupSuccess, setErrorMessage }) => {
   const [signupCredentials, setSignupCredentials] = useState({
@@ -23,7 +24,7 @@ const Signup = ({ onSignupSuccess, setErrorMessage }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(`${apiUrl}/api/signup`, signupCredentials, {
+      const response = await axios.post(`${apiUrl}/api/create-user`, signupCredentials, {
         headers: { 'Content-Type': 'application/json' },
       });
 
@@ -42,6 +43,43 @@ const Signup = ({ onSignupSuccess, setErrorMessage }) => {
   };
 
   return (
+    <div  style={{
+      display: 'inline-grid',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      alignContent: 'center',
+    }}>
+    <div
+      style={{
+        display: 'inline-flex',
+        gap: '12px',
+        marginLeft: '10px',
+      }}
+ 
+>
+  {/* 🔥 Logo */}
+  <img
+    src={logoSrc}
+    alt="App Logo"
+    style={{ width: '80px', marginBottom: '10px' }}
+  />
+
+  {/* 🖋️ App Title */}
+  <h1
+    style={{
+      fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`,
+      fontWeight: '700',
+      fontSize: '28px',
+      marginBottom: '30px',
+      letterSpacing: '-0.5px',
+      color: '#222',
+    }}
+  >
+  lifesaver
+  </h1>
+  </div>
     <div
       style={{
         display: 'inline-grid',
@@ -88,6 +126,7 @@ const Signup = ({ onSignupSuccess, setErrorMessage }) => {
           {loading ? <Spinner /> : 'Sign Up'}
         </LoginButton>
       </LoginForm>
+    </div>
     </div>
   );
 };
