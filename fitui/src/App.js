@@ -39,7 +39,7 @@ function App() {
             isLoggedIn ? (
               <Home userName={userName} onLogout={handleLogout} />
             ) : (
-              <Login onLoginSuccess={handleLoginSuccess} />
+              <Login onLoginSuccess={handleLoginSuccess} setErrorMessage={() => {}} />
             )
           }
         />

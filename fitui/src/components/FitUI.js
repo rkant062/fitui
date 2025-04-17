@@ -59,6 +59,9 @@ const FitUI = ({ onLogout }) => {
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [selectedTask, setSelectedTask] = useState('');
+const [taskProgress, setTaskProgress] = useState([]); // array of { week, percentage }
+
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -278,30 +281,25 @@ const FitUI = ({ onLogout }) => {
   const updateTotalJobsChart = (data, aggregation) => {
     let labels = [];
     let percentages = [];
-  
-    const calculatePercentage = (entries) => {
-      const maxChecklistLength = Math.max(...entries.map(entry => entry.checklist?.length || 0), 1); // Prevent 0
-      const totalPossible = entries.length * maxChecklistLength;
-      const totalCompleted = entries.reduce((sum, entry) => sum + (entry.checklist?.length || 0), 0);
-      return Math.round((totalCompleted / totalPossible) * 100);
-    };
-  
+    
     if (aggregation === 'daily') {
       const dailyData = groupByDay(dataVerb);
-      labels = Object.keys(dailyData).sort((a, b) => new Date(dailyData[a][0].date) - new Date(dailyData[b][0].date));
+      labels = Object.keys(dailyData).sort((a, b) => new Date(a) - new Date(b));
       percentages = labels.map(day => calculatePercentage(dailyData[day]));
-  
+    
     } else if (aggregation === 'weekly') {
       const weeklyData = groupByWeek(dataVerb);
-      labels = Object.keys(weeklyData).sort((a, b) => new Date(weeklyData[a][0].date) - new Date(weeklyData[b][0].date));
+      labels = Object.keys(weeklyData).sort((a, b) => new Date(a) - new Date(b));
       percentages = labels.map(week => calculatePercentage(weeklyData[week]));
-  
+    
     } else if (aggregation === 'monthly') {
       const monthlyData = groupByMonth(dataVerb);
-      labels = Object.keys(monthlyData).sort((a, b) => new Date(monthlyData[a][0].date) - new Date(monthlyData[b][0].date));
+      labels = Object.keys(monthlyData).sort((a, b) => new Date(a) - new Date(b));
       percentages = labels.map(month => calculatePercentage(monthlyData[month]));
     }
-  
+
+    
+    
     setTotalJobsData({
       labels,
       datasets: [{
@@ -315,6 +313,50 @@ const FitUI = ({ onLogout }) => {
       }],
     });
   };
+
+  const handleTaskChange = (task) => {
+    setSelectedTask(task);
+    const weeklyData = groupByWeek(dataVerb);
+  
+    const weeklyProgress = Object.entries(weeklyData).map(([week, entries]) => {
+      const totalDays = entries.length;
+  
+      const completedDays = entries.filter(entry =>
+        (entry.checklist || []).some(item => item.task === task && item.completed)
+      ).length;
+  
+      const percentage = Math.round((completedDays / totalDays) * 100);
+  
+      return { week, percentage };
+    });
+  
+    setTaskProgress(weeklyProgress);
+  };
+  
+  
+  const uniqueTasks = Array.from(
+    new Set(
+      dataVerb.flatMap(entry =>
+        (entry.checklist || []).map(item => item.task)
+      )
+    )
+  );
+  
+
+  const calculatePercentage = (entries) => {
+    let totalItems = 0;
+    let totalCompleted = 0;
+  
+    entries.forEach(entry => {
+      const checklist = entry.checklist || [];
+      totalItems += checklist.length;
+      totalCompleted += checklist.filter(item => item.completed).length;
+    });
+  
+    if (totalItems === 0) return 0;
+    return Math.round((totalCompleted / totalItems) * 100);
+  };
+  
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
@@ -441,6 +483,44 @@ const FitUI = ({ onLogout }) => {
             ) : (
               <p>No data available to display</p>
             )}
+<ChartWrapper>
+<div style={{ marginTop: '1rem' }}>
+  <label>Select a Task: </label>
+  <select value={selectedTask} onChange={(e) => handleTaskChange(e.target.value)}>
+    <option value="" disabled>Select a Task</option>
+    {uniqueTasks.map((task, idx) => (
+      <option key={idx} value={task}>{task}</option>
+    ))}
+  </select>
+
+  {selectedTask && (
+    <div style={{ marginTop: '1rem' }}>
+      <h4>Weekly Consistency for: <i>{selectedTask}</i></h4>
+      {taskProgress.map(({ week, percentage }) => (
+        <div key={week} style={{ marginBottom: '0.75rem' }}>
+          <strong>{week}</strong>
+          <div style={{
+            background: '#eee',
+            borderRadius: '8px',
+            height: '12px',
+            overflow: 'hidden',
+            marginTop: '4px'
+          }}>
+            <div style={{
+              width: `${percentage}%`,
+              backgroundColor: percentage > 70 ? '#4caf50' : '#ff9800',
+              height: '100%',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+          <span>{percentage}%</span>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
+</ChartWrapper>
           </TaskWrapper>
         </div>
       )}
