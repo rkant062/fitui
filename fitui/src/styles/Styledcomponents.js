@@ -152,7 +152,7 @@ const NewTaskInput = styled.input`
 
 const AddNewTaskButton = styled.button`
   padding: 10px;
-  background-color: ${({ bgColor }) => bgColor || 'rgba(25, 255, 152, 0.57)'};
+  background-color: ${({ bgColor }) => bgColor || 'rgba(255, 255, 255, 0.57)'};
   color: black;
   border: none;
   border-radius: 8px;
@@ -186,7 +186,7 @@ const SubmitButton = styled.button`
   width: 135px;
   height: 38px;
   padding: 12px;
-  background-color: ${({ bgColor }) => bgColor || 'rgba(25, 255, 152, 0.57)'};
+  background-color: ${({ bgColor }) => bgColor || 'rgba(255, 255, 255, 0.57)'};
   color: black;
   align-items: center;
   display: flex;
@@ -252,7 +252,7 @@ const AggregationSelect = styled.select`
 
 const RefreshButton = styled.button`
   padding: 10px 20px;
-  background-color: ${({ bgColor }) => bgColor || 'rgba(25, 255, 152, 0.57)'};
+  background-color: ${({ bgColor }) => bgColor || 'rgba(255, 255, 255, 0.57)'};
   color: black;
   border: none;
   border-radius: 8px;

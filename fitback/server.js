@@ -73,7 +73,7 @@ const Expense = mongoose.model('Expense', ExpenseSchema);
 const secretKey = process.env.JWT_SECRET;
 
 app.post('/api/validate-token', (req, res) => {
-  const { token } = req.body;
+  const token = req.cookies.token; // Pull from cookie now
   if (!token) {
     return res.status(400).json({ valid: false });
   }
@@ -82,12 +82,12 @@ app.post('/api/validate-token', (req, res) => {
     if (err) {
       return res.status(401).json({ valid: false });
     }
-    res.json({ valid: true, userName: decoded.userName });
+    res.json({ valid: true, userName: decoded.userName || decoded.userId });
   });
 });
 
 app.post('/api/renew-token', (req, res) => {
-  const { token } = req.body;
+  const token = req.cookies.token;
   if (!token) {
     return res.status(400).json({ error: 'Token is required' });
   }
@@ -97,7 +97,20 @@ app.post('/api/renew-token', (req, res) => {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    const newToken = jwt.sign({ userName: decoded.userName }, secretKey, { expiresIn: '1h' });
+    const newToken = jwt.sign(
+      { userId: decoded.userId, userName: decoded.userName },
+      secretKey,
+      { expiresIn: '1h' }
+    );
+
+    // Reset the cookie
+    res.cookie('token', newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'None',
+      maxAge: 3600000, // 1 hour
+    });
+
     res.json({ token: newToken });
   });
 });

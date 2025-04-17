@@ -7,7 +7,7 @@ const getColor = (progress) => {
   if (progress >= 0.5) return '#ffd700';     // Gold
   if (progress >= 0.3) return '#ffb347';     // Orange
   if (progress >= 0.1) return '#ff6f61';     // Coral
-  return '#ff4c4c';                          // Bright red
+  return 'rgba(255, 255, 255, 0.57)';                          // Bright red
 };
 
 const TaskSquare = styled.div`
@@ -45,7 +45,7 @@ const TaskCompletionIndicator = ({ checklist }) => {
     if (progress >= 0.5) return '🔥 Keep it rolling!';
     if (progress >= 0.3) return '🚀 You’re building momentum!';
     if (progress > 0) return '⚡ Let’s get moving!';
-    return '🎯 Ready to conquer the day?';
+    return 'Ready to conquer the day?';
   };
 
   return (
