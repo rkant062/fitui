@@ -92,9 +92,7 @@ const FitUI = ({ onLogout }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 const [taskProgress, setTaskProgress] = useState([]); // array of { week, percentage }
 const [selectedTask, setSelectedTask] = useState(''); // selected task for progress tracking
-
-
-
+const [progressColor, setProgressColor] = useState(''); // default color
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -165,12 +163,31 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
       });
   
       setChecklistItems(res.data.checklist || []);
+      setProgress(res.data.checklist || []);
       setNewTask('');
     } catch (err) {
       console.error('Error adding task:', err);
       setErrorMessage('Failed to add task.');
     }
   };
+
+  const setProgress = (checklist) => {
+    const totalTasks = checklist.length;
+    const completedTasks = checklist.filter(task => task.completed).length;
+    const progress = totalTasks > 0 ? completedTasks / totalTasks : 0;
+  setProgressColor(getColor(progress) + 'dd');
+ 
+  };
+
+  const getColor = (progress) => {
+    if (progress === 1) return '#00c853';      // Bright green
+  if (progress >= 0.75) return '#a2d729';    // Lime
+  if (progress >= 0.5) return '#ffd700';     // Gold
+  if (progress >= 0.3) return '#ffb347';     // Orange
+  if (progress >= 0.1) return '#ff6f61';     // Coral
+  return '#ff4c4c';  
+  }
+
   
   const handleDeleteTask = async (taskToDelete) => {
     const token = localStorage.getItem('auth_token');
@@ -185,6 +202,7 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
       });
   
       setChecklistItems(res.data.checklist || []);
+      setProgress(res.data.checklist || []);
       setFormData(prev => ({
         ...prev,
         checklist: prev.checklist.filter(task => task !== taskToDelete),
@@ -269,6 +287,7 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
       });
       setData(response.data);
       setChecklistItems(response.data.checklist || []);
+      setProgress(response.data.checklist || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       setErrorMessage('Error fetching data. Please try again.');
@@ -285,21 +304,13 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
           Authorization: `Bearer ${token}`,
         },
       });
-      setdataVerb(response.data);
-     
+      setdataVerb(response.data);      
     } catch (error) {
       console.error('Error fetching data:', error);
       setErrorMessage('Error fetching data. Please try again.');
     }
   };
 
-  const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
-
-  const todayData = dataVerb.find(entry =>
-    entry.date.slice(0, 10) === today
-  );
-  
-  const todayChecklist = todayData?.checklist || [];
 
   const updateChart = (data, aggregation) => {
     let labels = [];
@@ -471,9 +482,9 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
           <Header>Hi, {userName}</Header>
           <div>
           <ChartWrapper>
-              <TaskCompletionIndicator checklist={todayChecklist} />
+              <TaskCompletionIndicator checklist={checklistItems} />
               </ChartWrapper>
-          <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
+          <RefreshButton bgColor={progressColor} onClick={handleLogout}>Logout</RefreshButton>
           {/* <RefreshButton onClick={fetchData}>Refresh</RefreshButton>  */}
           <AggregationSelect onChange={(e) => setAggregationOption(e.target.value)} value={aggregationOption}>
             <option value="daily">Daily</option>
@@ -487,8 +498,9 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
               <div>
                 <h3>Select Your Activities:</h3>
                 <div>
-                <NewTaskInput type="text" value={newTask} onChange={handleNewTaskChange} placeholder="Add new task" />
+                <NewTaskInput  type="text" value={newTask} onChange={handleNewTaskChange} placeholder="Add new task" />
                 <AddNewTaskButton
+                bgColor={progressColor}
   type="button"
   onClick={handleAddNewTask}
 >
@@ -528,7 +540,7 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
               <Input type="number" name="caloriesBurned" onChange={handleInputChange} placeholder="Enter Calories Burned" />
               <Label>KCal</Label>
               </div>
-              <SubmitButton type="submit" disabled={loading}>{loading ? <Spinner/> : 'Submit'}</SubmitButton>  
+              <SubmitButton bgColor={progressColor} type="submit" disabled={loading}>{loading ? <Spinner/> : 'Submit'}</SubmitButton>  
 
             </Form>
             

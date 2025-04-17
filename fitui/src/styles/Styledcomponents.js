@@ -152,7 +152,7 @@ const NewTaskInput = styled.input`
 
 const AddNewTaskButton = styled.button`
   padding: 10px;
-  background-color: rgba(25, 255, 152, 0.57);
+  background-color: ${({ bgColor }) => bgColor || 'rgba(25, 255, 152, 0.57)'};
   color: black;
   border: none;
   border-radius: 8px;
@@ -162,10 +162,6 @@ const AddNewTaskButton = styled.button`
   transition: all 0.3s ease;
   margin-bottom: 10px;
 
-  &:hover {
-    background-color: rgba(45, 245, 92, 0.62);
-    box-shadow: 0 0 8px rgba(34, 255, 126, 0.3);
-  }
 
   @media (max-width: 768px) {
   }
@@ -190,7 +186,7 @@ const SubmitButton = styled.button`
   width: 135px;
   height: 38px;
   padding: 12px;
-  background-color: rgba(25, 255, 152, 0.57);
+  background-color: ${({ bgColor }) => bgColor || 'rgba(25, 255, 152, 0.57)'};
   color: black;
   align-items: center;
   display: flex;
@@ -256,7 +252,7 @@ const AggregationSelect = styled.select`
 
 const RefreshButton = styled.button`
   padding: 10px 20px;
-  background-color: rgba(25, 255, 152, 0.57);
+  background-color: ${({ bgColor }) => bgColor || 'rgba(25, 255, 152, 0.57)'};
   color: black;
   border: none;
   border-radius: 8px;

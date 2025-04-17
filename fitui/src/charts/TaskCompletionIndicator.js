@@ -33,6 +33,7 @@ const MotivationalText = styled.div`
   opacity: 0.85;
 `;
 
+
 const TaskCompletionIndicator = ({ checklist }) => {
   const totalTasks = checklist.length;
   const completedTasks = checklist.filter(task => task.completed).length;
