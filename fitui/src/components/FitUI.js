@@ -6,6 +6,7 @@ import Chart from 'chart.js/auto';
 import { groupByDay, groupByWeek, groupByMonth } from './Aggregation'
 import Login from './Login'; // Add this import
 import AppLayout from './AppLayout';
+import TaskCompletionIndicator from '../charts/TaskCompletionIndicator';
 import {
   Header,
   Caption,
@@ -285,11 +286,20 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
         },
       });
       setdataVerb(response.data);
+     
     } catch (error) {
       console.error('Error fetching data:', error);
       setErrorMessage('Error fetching data. Please try again.');
     }
   };
+
+  const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+
+  const todayData = dataVerb.find(entry =>
+    entry.date.slice(0, 10) === today
+  );
+  
+  const todayChecklist = todayData?.checklist || [];
 
   const updateChart = (data, aggregation) => {
     let labels = [];
@@ -445,6 +455,7 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
   };
   
 
+
   return (
     <AppLayout onLogout={onLogout}>
     <Container>
@@ -459,8 +470,11 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
         <div>
           <Header>Hi, {userName}</Header>
           <div>
-          {/* <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
-          <RefreshButton onClick={fetchData}>Refresh</RefreshButton> */}
+          <ChartWrapper>
+              <TaskCompletionIndicator checklist={todayChecklist} />
+              </ChartWrapper>
+          <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
+          {/* <RefreshButton onClick={fetchData}>Refresh</RefreshButton>  */}
           <AggregationSelect onChange={(e) => setAggregationOption(e.target.value)} value={aggregationOption}>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -521,6 +535,7 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
 
             {dataVerb.length > 0 ? (
               <>
+             
                 <ChartWrapper>
                   <ChartContainer>
                     <Line data={chartData} />
@@ -578,6 +593,7 @@ const [selectedTask, setSelectedTask] = useState(''); // selected task for progr
 </div>
 
 </ChartWrapper>
+
           </TaskWrapper>
         </div>
       )}

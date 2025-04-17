@@ -181,24 +181,44 @@ setCategories(enrichedCats);
       );
     });
 
+
     const datasets = Object.keys(categoryMap).map((cat, index) => ({
       label: cat,
       data: categoryMap[cat],
       borderColor: getColor(index),
-      fill: false,
+      fill: true,
       tension: 0.3,
+      backgroundColor: getColor(index) + '66', // Use backgroundColor instead of borderColor
+      borderWidth: 2,
+      barPercentage: 0.5, // 0 to 1 — smaller means narrower bars
+      categoryPercentage: 0.5, // 0 to 1 — smaller means narrower bars
     }));
 
     setCategoryChartData({ labels, datasets });
   };
 
+  const getColor = (index) => {
+    const palette = [
+      '#4e79a7', // Blue
+      '#f28e2b', // Orange
+      '#e15759', // Red
+      '#76b7b2', // Teal
+      '#59a14f', // Green
+      '#edc949', // Yellow
+      '#af7aa1', // Purple
+      '#ff9da7', // Pink
+      '#9c755f', // Brown
+      '#bab0ab'  // Gray
+    ];
+    return palette[index % palette.length];
+  };
+  
   const groupByTime = (data, aggregation) => {
     if (aggregation === 'daily') return groupByDay(data);
     if (aggregation === 'weekly') return groupByWeek(data);
     return groupByMonth(data);
   };
 
-  const getColor = (i) => ['#FF6384', '#36A2EB', '#FFCE56', '#8E44AD', '#2ECC71'][i % 5];
   const handleDeleteCategory = async (name) => {
     const token = localStorage.getItem('auth_token');
     if (!token) return;
@@ -251,8 +271,8 @@ setCategories(enrichedCats);
           <>
             <Header>Hi, {userName}</Header>
 
-            {/* <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
-            <RefreshButton onClick={fetchChartData}>Refresh Data</RefreshButton> */}
+            <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
+            {/* <RefreshButton onClick={fetchChartData}>Refresh Data</RefreshButton> */}
 
             <AggregationSelect
               onChange={(e) => setAggregationOption(e.target.value)}
