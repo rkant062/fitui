@@ -251,8 +251,8 @@ setCategories(enrichedCats);
           <>
             <Header>Hi, {userName}</Header>
 
-            <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
-            <RefreshButton onClick={fetchChartData}>Refresh Data</RefreshButton>
+            {/* <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
+            <RefreshButton onClick={fetchChartData}>Refresh Data</RefreshButton> */}
 
             <AggregationSelect
               onChange={(e) => setAggregationOption(e.target.value)}

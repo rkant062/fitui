@@ -43,6 +43,36 @@ const DeleteIcon = styled.span`
 `;
 
 
+const Select = styled.select`
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fafafa;
+  color: #333;
+  transition: border-color 0.3s ease;
+
+  &:focus {
+    border-color: #4caf50;
+    outline: none;
+  }
+
+  option {
+    padding: 10px;
+  }
+`;
+
+const DropdownContainer = styled.div`
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+`;
+
+
 const FitUI = ({ onLogout }) => {
  
 
@@ -59,19 +89,26 @@ const FitUI = ({ onLogout }) => {
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [selectedTask, setSelectedTask] = useState('');
 const [taskProgress, setTaskProgress] = useState([]); // array of { week, percentage }
+const [selectedTask, setSelectedTask] = useState(''); // selected task for progress tracking
+
+
 
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     const storedUserId = localStorage.getItem('user_id');
     const storedUserName = localStorage.getItem('user_name');
+    const selectedTasks = localStorage.getItem('selectedTasks');
 
     if (token && storedUserId) {
       setUserId(storedUserId);
       setUserName(storedUserName || '');
       setIsLoggedIn(true);
+    }
+    if (selectedTasks) {
+      setSelectedTask(selectedTasks.trim());
+      console.log('Selected tasks from localStorage:', selectedTasks);
     }
   }, []);
 
@@ -89,6 +126,12 @@ const [taskProgress, setTaskProgress] = useState([]); // array of { week, percen
       updateTotalJobsChart(dataVerb, aggregationOption);
     }
   }, [dataVerb, aggregationOption]);
+
+  useEffect(() => {
+    if (selectedTask && dataVerb.length > 0) {
+      handleTaskChange(selectedTask);
+    }
+  }, [selectedTask, dataVerb]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -312,8 +355,17 @@ const [taskProgress, setTaskProgress] = useState([]); // array of { week, percen
         tension: 0.2,
       }],
     });
+
   };
 
+ 
+  
+  const saveSelection = () => {
+    localStorage.setItem('selectedTasks', selectedTask);
+    alert('Task selection saved!');
+  };
+  
+  
   const handleTaskChange = (task) => {
     setSelectedTask(task);
     const weeklyData = groupByWeek(dataVerb);
@@ -333,7 +385,7 @@ const [taskProgress, setTaskProgress] = useState([]); // array of { week, percen
     setTaskProgress(weeklyProgress);
   };
   
-  
+
   const uniqueTasks = Array.from(
     new Set(
       dataVerb.flatMap(entry =>
@@ -407,8 +459,8 @@ const [taskProgress, setTaskProgress] = useState([]); // array of { week, percen
         <div>
           <Header>Hi, {userName}</Header>
           <div>
-          <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
-          <RefreshButton onClick={fetchData}>Refresh</RefreshButton>
+          {/* <RefreshButton onClick={handleLogout}>Logout</RefreshButton>
+          <RefreshButton onClick={fetchData}>Refresh</RefreshButton> */}
           <AggregationSelect onChange={(e) => setAggregationOption(e.target.value)} value={aggregationOption}>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -485,13 +537,18 @@ const [taskProgress, setTaskProgress] = useState([]); // array of { week, percen
             )}
 <ChartWrapper>
 <div style={{ marginTop: '1rem' }}>
-  <label>Select a Task: </label>
-  <select value={selectedTask} onChange={(e) => handleTaskChange(e.target.value)}>
-    <option value="" disabled>Select a Task</option>
-    {uniqueTasks.map((task, idx) => (
-      <option key={idx} value={task}>{task}</option>
-    ))}
-  </select>
+<DropdownContainer>
+    <Label>Select a Task:</Label>
+    <Select value={selectedTask} onChange={(e) => handleTaskChange(e.target.value)}>
+      <option value="" disabled>Select a Task</option>
+      {uniqueTasks.map((task, idx) => (
+        <option key={idx} value={task}>{task}</option>
+      ))}
+    </Select>
+  </DropdownContainer>
+  <LinkButton type="button" onClick={saveSelection}>
+  Set as Default Selection
+</LinkButton>
 
   {selectedTask && (
     <div style={{ marginTop: '1rem' }}>
