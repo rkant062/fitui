@@ -6,11 +6,13 @@ const multer = require('multer');
 const xlsx = require('xlsx');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 // Initialize Express
 const app = express();
 app.use(cors());
+app.use(cookieParser());
 app.use(bodyParser.json());
 
 // MongoDB URI and connection setup
@@ -125,6 +127,7 @@ app.post('/api/create-user', async (req, res) => {
 });
 
 // API to authenticate user (login)
+// API to authenticate user (login)
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -142,16 +145,24 @@ app.post('/api/login', async (req, res) => {
 
     // Generate a token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ message: 'Login successful', token, user});
+
+    // Set the token as a cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Secure flag to be true in production
+      sameSite: 'None', // Required for cross-site cookies
+      maxAge: 3600000,  // 1 hour (same as the JWT token expiration)
+    });
+
+    res.json({ message: 'Login successful', token, user });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error logging in' });
   }
 });
 
-// Middleware to verify the token
 const verifyToken = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+  const token = req.cookies.token; // Getting token from cookies
 
   if (!token) {
     return res.status(403).json({ message: 'Access denied' });
@@ -165,6 +176,7 @@ const verifyToken = (req, res, next) => {
     res.status(400).json({ message: 'Invalid token' });
   }
 };
+
 
 // API to upload and process the Excel file (with userId)
 const storage = multer.memoryStorage();
