@@ -27,7 +27,8 @@ const Login = ({ onLoginSuccess, setErrorMessage }) => {
     try {
       const response = await axios.post(`${apiUrl}/api/login`, loginCredentials, {
         headers: { 'Content-Type': 'application/json' },
-      });
+        withCredentials: true 
+            });
 
       const { token, user } = response.data;
       localStorage.setItem('auth_token', token);

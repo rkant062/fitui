@@ -303,6 +303,7 @@ const [progressColor, setProgressColor] = useState(''); // default color
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        withCredentials: true 
       });
       setdataVerb(response.data);      
     } catch (error) {

@@ -11,7 +11,15 @@ require('dotenv').config();
 
 // Initialize Express
 const app = express();
-app.use(cors());
+//app.use(cors());
+const allowedOrigins = ['http://localhost:3000', 'https://fitui-bhhtgzebbdfqfcd8.canadacentral-01.azurewebsites.net'];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
 app.use(cookieParser());
 app.use(bodyParser.json());
 
@@ -146,13 +154,18 @@ app.post('/api/login', async (req, res) => {
     // Generate a token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Set the token as a cookie
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Secure flag to be true in production
-      sameSite: 'None', // Required for cross-site cookies
-      maxAge: 3600000,  // 1 hour (same as the JWT token expiration)
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'None',  // Needs to be 'None' if frontend is on a different domain
+      maxAge: 3600000
     });
+    // res.cookie('token', token, {
+    //   httpOnly: true,
+    //   secure: false, // Important: false for local development
+    //   sameSite: 'Lax', // Lax or Strict is fine for dev
+    //   maxAge: 3600000,
+    // });
 
     res.json({ message: 'Login successful', token, user });
   } catch (err) {
@@ -162,17 +175,18 @@ app.post('/api/login', async (req, res) => {
 });
 
 const verifyToken = (req, res, next) => {
-  const token = req.cookies.token; // Getting token from cookies
-
+  const token = req.cookies.token ||  req.headers.authorization?.split(' ')[1];; // Getting token from cookies
+  console.log('Incoming token:', token);
   if (!token) {
     return res.status(403).json({ message: 'Access denied' });
   }
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Decoded:', decoded);
     req.userId = decoded.userId;
     next();
   } catch (err) {
+    console.error('JWT verification error:', err.message);
     res.status(400).json({ message: 'Invalid token' });
   }
 };
