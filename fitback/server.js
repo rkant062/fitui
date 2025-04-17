@@ -14,11 +14,8 @@ const app = express();
 //app.use(cors());
 const allowedOrigins = ['http://localhost:3000', 'https://fitui-bhhtgzebbdfqfcd8.canadacentral-01.azurewebsites.net'];
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true
+  origin: true,
+  credentials: true,
 }));
 app.use(cookieParser());
 app.use(bodyParser.json());
