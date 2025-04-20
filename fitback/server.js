@@ -8,15 +8,20 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
+const path = require('path');
 
 // Initialize Express
 const app = express();
 //app.use(cors());
-const allowedOrigins = ['http://localhost:3000', 'https://fitui-bhhtgzebbdfqfcd8.canadacentral-01.azurewebsites.net'];
 app.use(cors({
   origin: true,
   credentials: true,
 }));
+// Serve React frontend
+app.use(express.static(path.join(__dirname, 'build')));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 app.use(cookieParser());
 app.use(bodyParser.json());
 
@@ -73,47 +78,50 @@ const Expense = mongoose.model('Expense', ExpenseSchema);
 const secretKey = process.env.JWT_SECRET;
 
 app.post('/api/validate-token', (req, res) => {
-  const token = req.cookies.token; // Pull from cookie now
+  const token = req.cookies.token ||  req.headers.authorization?.split(' ')[1];; // Getting token from cookies
+  console.log('Incoming token:', token);
   if (!token) {
-    return res.status(400).json({ valid: false });
+    return res.status(403).json({ message: 'Access denied' });
   }
-
-  jwt.verify(token, secretKey, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ valid: false });
-    }
-    res.json({ valid: true, userName: decoded.userName || decoded.userId });
-  });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Decoded:', decoded);
+    req.userId = decoded.userId;
+  } catch (err) {
+    console.error('JWT verification error:', err.message);
+    res.status(400).json({ message: 'Invalid token' });
+  }
+  return res.json({ valid: true });
 });
 
 app.post('/api/renew-token', (req, res) => {
-  const token = req.cookies.token;
-  if (!token) {
-    return res.status(400).json({ error: 'Token is required' });
+  const oldToken = req.cookies.token;
+  if (!oldToken) {
+    return res.status(401).json({ success: false, message: 'No token provided' });
   }
 
-  jwt.verify(token, secretKey, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
+  jwt.verify(oldToken, secretKey, { ignoreExpiration: true }, (err, decoded) => {
+    if (err || !decoded.userName) {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
     }
 
     const newToken = jwt.sign(
-      { userId: decoded.userId, userName: decoded.userName },
+      { userName: decoded.userName },
       secretKey,
-      { expiresIn: '1h' }
+      { expiresIn: '1d' }
     );
 
-    // Reset the cookie
     res.cookie('token', newToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'None',
-      maxAge: 3600000, // 1 hour
+      sameSite: 'Lax',
+      maxAge: 24 * 60 * 60 * 1000
     });
 
-    res.json({ token: newToken });
+    return res.json({ success: true });
   });
 });
+
 
 
 // API to create a new user
@@ -162,7 +170,7 @@ app.post('/api/login', async (req, res) => {
     }
 
     // Generate a token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
     res.cookie('token', token, {
       httpOnly: true,
@@ -174,7 +182,7 @@ app.post('/api/login', async (req, res) => {
     //   httpOnly: true,
     //   secure: false, // Important: false for local development
     //   sameSite: 'Lax', // Lax or Strict is fine for dev
-    //   maxAge: 3600000,
+    //   maxAge: 30 * 24 * 60 * 60 * 1000 // 1 month,
     // });
 
     res.json({ message: 'Login successful', token, user });

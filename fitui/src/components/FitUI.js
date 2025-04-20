@@ -30,6 +30,20 @@ import {
   LoginButton
 } from '../styles/Styledcomponents';
 import Spinner from './Spinner';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+export const getISTISOString = () => {
+  return dayjs().tz('Asia/Kolkata').toISOString();
+};
+
+export const formatToIST = (date) => {
+  return dayjs(date).tz('Asia/Kolkata').format('DD MMM YYYY, hh:mm A');
+};
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
@@ -93,6 +107,8 @@ const FitUI = ({ onLogout }) => {
 const [taskProgress, setTaskProgress] = useState([]); // array of { week, percentage }
 const [selectedTask, setSelectedTask] = useState(''); // selected task for progress tracking
 const [progressColor, setProgressColor] = useState(''); // default color
+const [activeDate, setActiveDate] = useState(new Date()); // defaults to today
+
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -218,13 +234,15 @@ const [progressColor, setProgressColor] = useState(''); // default color
     setUserName(user.username);
     setIsLoggedIn(true);
   };
+ 
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
   
-    const currentDate = new Date();
-    const date = currentDate.toISOString();
+  
+    const date = getISTISOString();
   
     const enrichedChecklist = formData.checklist.map(taskName => {
       // Find the task in checklistItems that matches the taskName from the formData
@@ -316,20 +334,25 @@ const [progressColor, setProgressColor] = useState(''); // default color
   const updateChart = (data, aggregation) => {
     let labels = [];
     let values = [];
-
+  
+    if (!Array.isArray(data) || data.length === 0) return;
+  
+    let groupedData = {};
+  
     if (aggregation === 'daily') {
-      const dailyData = groupByDay(data);
-      labels = Object.keys(dailyData);
-      values = labels.map(day => dailyData[day].reduce((sum, item) => sum + item.caloriesBurned, 0));
+      groupedData = groupByDay(data); // keys = 'YYYY-MM-DD'
     } else if (aggregation === 'weekly') {
-      const weeklyData = groupByWeek(data);
-      labels = Object.keys(weeklyData);
-      values = labels.map(week => weeklyData[week].reduce((sum, item) => sum + item.caloriesBurned, 0));
+      groupedData = groupByWeek(data); // keys = 'YYYY-[W]ww'
     } else if (aggregation === 'monthly') {
-      const monthlyData = groupByMonth(data);
-      labels = Object.keys(monthlyData);
-      values = labels.map(month => monthlyData[month].reduce((sum, item) => sum + item.caloriesBurned, 0));
+      groupedData = groupByMonth(data); // keys = 'YYYY-MM'
     }
+  
+    labels = Object.keys(groupedData).sort((a, b) => new Date(a) - new Date(b));
+    values = labels.map(label => {
+      const total = groupedData[label].reduce((sum, item) => sum + (item.caloriesBurned || 0), 0);
+      return total;
+    });
+  
 
     setChartData({
       labels,
@@ -416,6 +439,11 @@ const [progressColor, setProgressColor] = useState(''); // default color
     )
   );
   
+  const getISTDateString = (date) => {
+    const istOffset = 5.5 * 60 * 60000; // IST offset in ms
+    const istDate = new Date(date.getTime() + istOffset);
+    return istDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
 
   const calculatePercentage = (entries) => {
     let totalItems = 0;
@@ -441,6 +469,13 @@ const [progressColor, setProgressColor] = useState(''); // default color
     setUserName('');
   };
 
+  const goToPreviousDay = () => {
+    setActiveDate(prev => new Date(prev.setDate(prev.getDate() - 1)));
+  };
+  
+  const goToNextDay = () => {
+    setActiveDate(prev => new Date(prev.setDate(prev.getDate() + 1)));
+  };
 
   const handleSetDefaultChecklist = async () => {
     const token = localStorage.getItem('auth_token');
@@ -495,6 +530,11 @@ const [progressColor, setProgressColor] = useState(''); // default color
           </div>
           <TaskWrapper>
             <Form onSubmit={handleSubmit}>
+            {/* <div style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
+  <button onClick={goToPreviousDay}>← Previous</button>
+  <div style={{ margin: '0 10px' }}>{getISTDateString(activeDate)}</div>
+  <button onClick={goToNextDay}>Next →</button>
+</div> */}
               
               <div>
                 <h3>Select Your Activities:</h3>
@@ -543,6 +583,20 @@ const [progressColor, setProgressColor] = useState(''); // default color
               </div>
               <SubmitButton bgColor={progressColor} type="submit" disabled={loading}>{loading ? <Spinner/> : 'Submit'}</SubmitButton>  
 
+              {checklistItems.filter(item => item.completed).length > 0 && (
+  <div style={{ marginTop: '10px' }}>
+    <h4 style={{margin: '0'}}>✅ Completed Tasks:</h4>
+    <ul style={{ paddingLeft: '20px' }}>
+      {checklistItems
+        .filter(item => item.completed)
+        .map(item => (
+          <li key={item._id} style={{ textDecoration: 'line-through', opacity: 0.7 }}>
+            {item.task}
+          </li>
+      ))}
+    </ul>
+  </div>
+)}
             </Form>
             
 
