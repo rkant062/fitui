@@ -1,103 +1,104 @@
-import React, { useState, useEffect } from 'react';
-import { Input, SubmitButton } from '../styles/Styledcomponents'; // Removed unused imports
-import TaskList from './TaskList';
-import { updateChart, updateTotalJobsChart } from '../utils/dataUtils'; // Corrected imports
-import axios from 'axios';
-import { apiUrl } from '../api/api';
+import React from 'react';
+import {
+  Form,
+  NewTaskInput,
+  AddNewTaskButton,
+  LinkButton,
+  CheckList,
+  ChecklistItem,
+  Input,
+  Label,
+  SubmitButton
+} from '../styles/Styledcomponents';
+import Spinner from './Spinner';
 
 const TaskForm = ({
   formData,
-  setFormData,
-  setData,
-  setChartData,
-  setTotalJobsData,
-  setErrorMessage,
-  aggregationOption
+  checklistItems,
+  newTask,
+  loading,
+  progressColor,
+  handleInputChange,
+  handleChecklistChange,
+  handleNewTaskChange,
+  handleAddNewTask,
+  handleSetDefaultChecklist,
+  handleDeleteTask,
+  handleSubmit
 }) => {
-  const [loading, setLoadingState] = useState(false);
-  const [checklist, setChecklist] = useState(formData.checklist || []); // Track checklist locally
-  const [error, setError] = useState(''); // Local error state for handling form submission errors
-
-  // Sync formData with checklist state to keep the UI in sync
-  useEffect(() => {
-    setChecklist(formData.checklist || []);
-  }, [formData]);
-
-  // Handle input change for calories burned
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Handle checkbox changes (update the checklist)
-  const handleChecklistChange = (e, task) => {
-    const { checked } = e.target;
-    setChecklist((prevChecklist) =>
-      prevChecklist.map((item) =>
-        item.task === task ? { ...item, completed: checked } : item
-      )
-    );
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoadingState(true); // Start loading
-
-    const currentDate = new Date();
-    const payload = { ...formData, date: currentDate.toISOString(), checklist };
-
-    try {
-      // Send the updated checklist to the backend for the current day
-      const response = await axios.post(`${apiUrl}/api/update-checklist`, { day: formData.day, checklist }, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      // Assuming the response data returns the updated checklist
-      setFormData((prev) => ({ ...prev, checklist: response.data.checklist }));
-
-      // Update the charts after submitting the form
-      setData((prevData) => {
-        const updatedData = [...prevData, response.data];
-        updateChart(updatedData, setChartData);
-        updateTotalJobsChart(updatedData, aggregationOption, setTotalJobsData);
-        return updatedData;
-      });
-
-      setErrorMessage(''); // Clear error message
-      setError(''); // Clear local error state
-    } catch (error) {
-      console.error('Error saving data:', error);
-      setError('Error saving data. Please try again.'); // Set error message
-    } finally {
-      setLoadingState(false); // End loading
-    }
-  };
-
   return (
-    <form onSubmit={handleSubmit}>
-      <Input
-        type="number"
-        name="caloriesBurned"
-        value={formData.caloriesBurned}
-        onChange={handleInputChange}
-        placeholder="Enter Calories Burned"
-        required
-      />
-      
-      <TaskList
-        formData={formData}
-        setFormData={setFormData}
-        checklist={checklist} // Pass the checklist for rendering
-        handleChecklistChange={handleChecklistChange} // Handle task completion change
-      />
-      
-      {error && <p style={{ color: 'red' }}>{error}</p>} {/* Display error if present */}
-      
-      <SubmitButton type="submit" disabled={loading}>
-        {loading ? 'Submitting...' : 'Submit'}
+    <Form onSubmit={handleSubmit}>
+      <div>
+        <h3>Select Your Activities:</h3>
+        <div>
+          <NewTaskInput
+            type="text"
+            value={newTask}
+            onChange={handleNewTaskChange}
+            placeholder="Add new task"
+          />
+          <AddNewTaskButton
+            bgColor={progressColor}
+            type="button"
+            onClick={handleAddNewTask}
+          >
+            Add task
+          </AddNewTaskButton>
+          <LinkButton type="button" onClick={handleSetDefaultChecklist}>
+            Set as Default Checklist
+          </LinkButton>
+        </div>
+
+        {checklistItems.filter(item => !item.completed).length > 0 ? (
+          checklistItems.filter(item => !item.completed).map((item) => (
+            <CheckList key={item._id}>
+              <ChecklistItem>
+                <input
+                  type="checkbox"
+                  checked={formData.checklist.includes(item.task)}
+                  onChange={(e) => handleChecklistChange(e, item.task)}
+                />
+                <span>{item.task}</span>
+              </ChecklistItem>
+              <span onClick={() => handleDeleteTask(item)} style={{ cursor: 'pointer' }}>
+                🗑️
+              </span>
+            </CheckList>
+          ))
+        ) : (
+          <p>No checklist items. Add a new one above.</p>
+        )}
+      </div>
+
+      <div>
+        <Input
+          type="number"
+          name="caloriesBurned"
+          onChange={handleInputChange}
+          placeholder="Enter Calories Burned"
+        />
+        <Label>KCal</Label>
+      </div>
+
+      <SubmitButton bgColor={progressColor} type="submit" disabled={loading}>
+        {loading ? <Spinner /> : 'Submit'}
       </SubmitButton>
-    </form>
+
+      {checklistItems.filter(item => item.completed).length > 0 && (
+        <div style={{ marginTop: '10px' }}>
+          <h4 style={{ margin: '0' }}>✅ Completed Tasks:</h4>
+          <ul style={{ paddingLeft: '20px' }}>
+            {checklistItems
+              .filter(item => item.completed)
+              .map(item => (
+                <li key={item._id} style={{ textDecoration: 'line-through', opacity: 0.7 }}>
+                  {item.task}
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
+    </Form>
   );
 };
 

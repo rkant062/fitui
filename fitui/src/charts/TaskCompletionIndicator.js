@@ -2,13 +2,13 @@ import React from 'react';
 import styled from 'styled-components';
 
 const getColor = (progress) => {
-  if (progress === 1) return '#00c853';      // Bright green
-  if (progress >= 0.75) return '#a2d729';    // Lime
-  if (progress >= 0.5) return '#ffd700';     // Gold
-  if (progress >= 0.3) return '#ffb347';     // Orange
-  if (progress >= 0.1) return '#ff6f61';     // Coral
-  return 'rgba(255, 255, 255, 0.57)';                          // Bright red
-};
+    if (progress === 1) return '#00c853';      // Bright green
+    if (progress >= 0.75) return '#a2d729';    // Lime
+    if (progress >= 0.5) return '#ffd700';     // Gold
+    if (progress >= 0.3) return '#ffb347';     // Orange
+    if (progress >= 0.1) return '#ff6f61';     // Coral
+    return '#fff';                          
+  };
 
 const TaskSquare = styled.div`
   width: auto;
