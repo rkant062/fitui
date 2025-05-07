@@ -702,3 +702,43 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
     
     
     // === Expense
+
+// API to fetch expense chart data with date range
+app.get('/api/data/chart', verifyToken, async (req, res) => {
+  try {
+    const { type, startDate, endDate } = req.query;
+    
+    // If no query parameters, return all expenses for the user
+    if (!type && !startDate && !endDate) {
+      const expenses = await Expense.find({
+        userId: req.userId
+      }).sort({ date: 1 });
+      return res.json(expenses);
+    }
+
+    // If query parameters are provided, validate them
+    if (!type || !startDate || !endDate) {
+      return res.status(400).json({ message: 'Missing required parameters: type, startDate, endDate' });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (type === 'expense') {
+      const expenses = await Expense.find({
+        userId: req.userId,
+        date: {
+          $gte: start,
+          $lte: end
+        }
+      }).sort({ date: 1 });
+
+      return res.json(expenses);
+    } else {
+      return res.status(400).json({ message: 'Invalid chart type' });
+    }
+  } catch (err) {
+    console.error('Error fetching chart data:', err);
+    return res.status(500).json({ message: 'Error fetching chart data' });
+  }
+});
