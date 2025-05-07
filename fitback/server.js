@@ -336,15 +336,30 @@ app.get('/api/test', async (req, res) => {
   
 // API to fetch data for a specific user
 app.get('/api/chart', verifyToken, async (req, res) => {
-
-       
+  try {
+    console.log('Fetching chart data for userId:', req.userId);
     
-        // Find today's entry for the user
-        let todayEntry = await Data.find({
-          userId: req.userId });
+    if (!req.userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
 
-          return res.json(todayEntry);
-        });
+    // Find all entries for the user, sorted by date
+    const data = await Data.find({
+      userId: req.userId
+    }).sort({ date: 1 });
+
+    console.log('Found', data.length, 'entries for user');
+
+    if (!data || data.length === 0) {
+      return res.json([]); // Return empty array if no data found
+    }
+
+    return res.json(data);
+  } catch (err) {
+    console.error('Error fetching chart data:', err);
+    return res.status(500).json({ message: 'Error fetching chart data' });
+  }
+});
 
 // API to fetch data for a specific user
 app.get('/api/data', verifyToken, async (req, res) => {
@@ -403,7 +418,7 @@ app.get('/api/data', verifyToken, async (req, res) => {
     });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
