@@ -140,6 +140,8 @@ const FinUI = (onLogout) => {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
 
+      console.log('Fetching data with date range:', { startDate, endDate });
+
       const response = await axios.get(`${apiUrl}/api/data/chart`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -151,12 +153,15 @@ const FinUI = (onLogout) => {
         },
         withCredentials: true,
       });
+      
+      console.log('Received data:', response.data);
       setData(response.data);
+
       const catresponse = await axios.get(`${apiUrl}/api/expenses/categories`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log('Received categories:', catresponse.data);
       const uniqueCats = catresponse.data;
-      console.log("Unique categories:", uniqueCats);
       const enrichedCats = uniqueCats;
       setCategories(enrichedCats);
     } catch (error) {
@@ -173,11 +178,19 @@ const FinUI = (onLogout) => {
   };
 
   const updateTotalExpenseChart = (data, aggregation) => {
+    console.log('Updating chart with data:', data);
+    console.log('Aggregation type:', aggregation);
+    
     const grouped = groupByTime(data, aggregation);
+    console.log('Grouped data:', grouped);
+    
     const labels = Object.keys(grouped);
     const values = labels.map((date) =>
       grouped[date].reduce((sum, e) => sum + e.amount, 0)
     );
+    
+    console.log('Chart labels:', labels);
+    console.log('Chart values:', values);
 
     setChartData({
       labels,
