@@ -12,11 +12,15 @@ const path = require('path');
 
 // Initialize Express
 const app = express();
-//app.use(cors());
+
+// CORS configuration
 app.use(cors({
-  origin: true,
+  origin: 'https://fitui-production.up.railway.app',  // Specify the exact origin
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 // Serve React frontend
 app.use(express.static(path.join(__dirname, 'build')));
 app.get('/', (req, res) => {
@@ -713,7 +717,15 @@ app.get('/api/data/chart', verifyToken, async (req, res) => {
       const expenses = await Expense.find({
         userId: req.userId
       }).sort({ date: 1 });
-      return res.json(expenses);
+
+      // Format data for chart display
+      const chartData = expenses.map(expense => ({
+        date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        amount: expense.amount || 0,
+        category: expense.category || 'Uncategorized'
+      }));
+
+      return res.json(chartData);
     }
 
     // If query parameters are provided, validate them
@@ -721,8 +733,14 @@ app.get('/api/data/chart', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'Missing required parameters: type, startDate, endDate' });
     }
 
+    // Parse dates and set to start/end of day
     const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    
     const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    console.log('Date range:', { start, end });
 
     if (type === 'expense') {
       const expenses = await Expense.find({
@@ -733,7 +751,17 @@ app.get('/api/data/chart', verifyToken, async (req, res) => {
         }
       }).sort({ date: 1 });
 
-      return res.json(expenses);
+      console.log('Found expenses:', expenses.length);
+
+      // Format data for chart display
+      const chartData = expenses.map(expense => ({
+        date: expense.date ? new Date(expense.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        amount: expense.amount || 0,
+        category: expense.category || 'Uncategorized'
+      }));
+
+      console.log('Formatted chart data:', chartData);
+      return res.json(chartData);
     } else {
       return res.status(400).json({ message: 'Invalid chart type' });
     }
