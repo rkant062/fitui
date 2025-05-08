@@ -47,6 +47,7 @@ const FinUI = (onLogout) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [newCategoryBudget, setNewCategoryBudget] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleRefresh = () => {
     return new Promise((resolve) => {
@@ -134,10 +135,23 @@ const FinUI = (onLogout) => {
     if (!token) return;
 
     try {
-      const res = await axios.get(`${apiUrl}/api/expenses`, {
-        headers: { Authorization: `Bearer ${token}` },
+      // Calculate date range (last 7 days)
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+
+      const response = await axios.get(`${apiUrl}/api/data/chart`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          type: 'expense',
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        },
+        withCredentials: true,
       });
-      setData(res.data);
+      setData(response.data);
       const catresponse = await axios.get(`${apiUrl}/api/expenses/categories`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -145,8 +159,9 @@ const FinUI = (onLogout) => {
       console.log("Unique categories:", uniqueCats);
       const enrichedCats = uniqueCats;
       setCategories(enrichedCats);
-    } catch (err) {
-      console.error("Fetch chart error:", err);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setErrorMessage("Error fetching data. Please try again.");
     }
   };
 
