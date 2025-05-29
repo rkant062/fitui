@@ -198,49 +198,59 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ message: 'User not found' });
     }
 
-    // Check if the password is correct
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Generate a token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
+    // Set cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'None',  // Needs to be 'None' if frontend is on a different domain
-      maxAge: 3600000
+      sameSite: 'Lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
-    // res.cookie('token', token, {
-    //   httpOnly: true,
-    //   secure: false, // Important: false for local development
-    //   sameSite: 'Lax', // Lax or Strict is fine for dev
-    //   maxAge: 30 * 24 * 60 * 60 * 1000 // 1 month,
-    // });
 
-    res.json({ message: 'Login successful', token, user });
+    // Send token in response
+    res.json({ 
+      message: 'Login successful', 
+      token, 
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email
+      }
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Login error:', err);
     res.status(500).json({ message: 'Error logging in' });
   }
 });
 
 const verifyToken = (req, res, next) => {
-  const token = req.cookies.token ||  req.headers.authorization?.split(' ')[1];; // Getting token from cookies
-  console.log('Incoming token:', token);
+  // Try to get token from Authorization header first
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.split(' ')[1] 
+    : req.cookies.token;
+
+  console.log('Verifying token:', token);
+  
   if (!token) {
-    return res.status(403).json({ message: 'Access denied' });
+    console.log('No token provided');
+    return res.status(401).json({ message: 'Access denied. No token provided.' });
   }
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Decoded:', decoded);
+    console.log('Token decoded successfully:', decoded);
     req.userId = decoded.userId;
     next();
   } catch (err) {
-    console.error('JWT verification error:', err.message);
-    res.status(400).json({ message: 'Invalid token' });
+    console.error('Token verification failed:', err.message);
+    return res.status(401).json({ message: 'Invalid token.' });
   }
 };
 
