@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Input, LoginForm, LoginButton } from '../styles/Styledcomponents';
 import Spinner from './Spinner';
+import { useNavigate } from 'react-router-dom';
+import Confetti from 'react-confetti';
 
 const apiUrl = process.env.REACT_APP_API_URL;
 const logoSrc = 'https://img.icons8.com/?size=100&id=58926&format=png&color=000000';
@@ -14,6 +16,8 @@ const Signup = ({ onSignupSuccess, setErrorMessage }) => {
     password: '',
   });
   const [loading, setLoading] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignupInputChange = (e) => {
     const { name, value } = e.target;
@@ -28,12 +32,11 @@ const Signup = ({ onSignupSuccess, setErrorMessage }) => {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const { token, user } = response.data;
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user_id', user._id);
-      localStorage.setItem('user_name', user.username);
-
-      onSignupSuccess(user);
+      setShowConfetti(true);
+      setTimeout(() => {
+        setShowConfetti(false);
+        navigate('/login');
+      }, 3000);
     } catch (error) {
       console.error('Signup failed:', error);
       setErrorMessage('Signup failed. Try a different email or password.');
@@ -43,56 +46,42 @@ const Signup = ({ onSignupSuccess, setErrorMessage }) => {
   };
 
   return (
-    <div  style={{
-      display: 'inline-grid',
+    <div style={{
+      display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      height: '100vh',
-      alignContent: 'center',
+      minHeight: '100vh',
+      padding: '20px',
+      position: 'relative'
     }}>
-    <div
-      style={{
-        display: 'inline-flex',
-        gap: '12px',
-        marginLeft: '10px',
-      }}
- 
->
-  {/* 🔥 Logo */}
-  <img
-    src={logoSrc}
-    alt="App Logo"
-    style={{ width: '80px', marginBottom: '10px' }}
-  />
-
-  {/* 🖋️ App Title */}
-  <h1
-    style={{
-      fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`,
-      fontWeight: '700',
-      fontSize: '28px',
-      marginBottom: '30px',
-      letterSpacing: '-0.5px',
-      color: '#222',
-    }}
-  >
-  lifesaver
-  </h1>
-  </div>
-    <div
-      style={{
-        display: 'inline-grid',
-        flexDirection: 'column',
+      {showConfetti && <Confetti />}
+      
+      <div style={{
+        display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        alignContent: 'center',
-      }}
-    >
-      <LoginForm onSubmit={handleSignup}>
+        gap: '12px',
+        marginBottom: '30px'
+      }}>
+        <img
+          src={logoSrc}
+          alt="App Logo"
+          style={{ width: '80px' }}
+        />
+        <h1 style={{
+          fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`,
+          fontWeight: '700',
+          fontSize: '28px',
+          letterSpacing: '-0.5px',
+          color: '#222',
+          margin: 0
+        }}>
+          lifesaver
+        </h1>
+      </div>
+
+      <LoginForm onSubmit={handleSignup} style={{ width: '100%', maxWidth: '300px' }}>
         <Input
-          style={{ width: '300px' }}
           type="text"
           name="username"
           placeholder="Username"
@@ -101,7 +90,6 @@ const Signup = ({ onSignupSuccess, setErrorMessage }) => {
           required
         />
         <Input
-          style={{ width: '300px' }}
           type="email"
           name="email"
           placeholder="Email"
@@ -110,7 +98,6 @@ const Signup = ({ onSignupSuccess, setErrorMessage }) => {
           required
         />
         <Input
-          style={{ width: '300px' }}
           type="password"
           name="password"
           placeholder="Password"
@@ -119,14 +106,12 @@ const Signup = ({ onSignupSuccess, setErrorMessage }) => {
           required
         />
         <LoginButton
-          style={{ width: '300px', marginLeft: '10px' }}
           type="submit"
           disabled={loading}
         >
           {loading ? <Spinner /> : 'Sign Up'}
         </LoginButton>
       </LoginForm>
-    </div>
     </div>
   );
 };

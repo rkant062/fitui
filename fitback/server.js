@@ -9,6 +9,8 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const path = require('path');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 // Initialize Express
 const app = express();
@@ -81,12 +83,27 @@ const DataSchema = new mongoose.Schema({
 
 const Data = mongoose.model('Data', DataSchema);
 
+// Add after other schema definitions
+const SharedAccountSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  shareToken: { type: String, unique: true },
+  createdAt: { type: Date, default: Date.now },
+  isActive: { type: Boolean, default: true }
+});
+
+const SharedAccount = mongoose.model('SharedAccount', SharedAccountSchema);
+
+// Modify ExpenseSchema to support shared accounts
 const ExpenseSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  date: { type: Date, required: true },
   amount: { type: Number, required: true },
   category: { type: String, required: true },
   description: { type: String },
-  date: { type: Date, default: Date.now },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  username: { type: String, required: true },
+  sharedAccountId: { type: mongoose.Schema.Types.ObjectId, ref: "SharedAccount" }
 });
 
 const Expense = mongoose.model('Expense', ExpenseSchema);
@@ -593,30 +610,63 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
     });
   
     app.post('/api/expenses', verifyToken, async (req, res) => {
-      const { expenses } = req.body;
-    
-      if (!Array.isArray(expenses)) {
-        return res.status(400).json({ message: 'Expenses should be an array' });
-      }
-    
       try {
-        const enriched = expenses.map(exp => ({
-          ...exp,
-          userId: req.userId,
-          date: new Date(exp.date || Date.now()),
+        const { expenses, sharedAccountId } = req.body;
+        const userId = req.userId;
+
+        // Get user to get username
+        const user = await User.findById(userId);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        // Validate shared account access if sharedAccountId is provided
+        if (sharedAccountId) {
+          const sharedAccount = await SharedAccount.findById(sharedAccountId);
+          if (!sharedAccount || !sharedAccount.collaborators.includes(userId)) {
+            return res.status(403).json({ error: "Not authorized to add expenses to this shared account" });
+          }
+        }
+
+        const expenseDocs = expenses.map(expense => ({
+          ...expense,
+          userId,
+          username: user.username,
+          sharedAccountId: sharedAccountId || null
         }));
-    
-        const saved = await Expense.insertMany(enriched);
-        res.json({ message: 'Expenses added successfully', data: saved });
+
+        const savedExpenses = await Expense.insertMany(expenseDocs);
+        res.json(savedExpenses);
       } catch (err) {
-        console.error('Error adding expenses:', err);
-        res.status(500).json({ message: 'Failed to add expenses' });
+        console.error("Error creating expenses:", err);
+        res.status(500).json({ error: "Error creating expenses" });
       }
     });
     
     app.get('/api/expenses', verifyToken, async (req, res) => {
       try {
-        const expenses = await Expense.find({ userId: req.userId }).sort({ date: 1 });
+        // Get all shared accounts the user has access to
+        const sharedAccounts = await SharedAccount.find({
+          $or: [
+            { owner: req.userId },
+            { collaborators: req.userId }
+          ],
+          isActive: true
+        });
+
+        const sharedAccountIds = sharedAccounts.map(acc => acc._id);
+
+        // Find all expenses where user is either the owner or part of a shared account
+        const expenses = await Expense.find({
+          $or: [
+            { userId: req.userId },
+            { 
+              sharedAccountId: { $in: sharedAccountIds },
+              isShared: true
+            }
+          ]
+        }).sort({ date: 1 });
+
         res.json(expenses);
       } catch (err) {
         console.error('Error fetching expenses:', err);
@@ -724,13 +774,18 @@ app.get('/api/checklist', verifyToken, async (req, res) => {
 // API to fetch expense chart data with date range
 app.get('/api/data/chart', verifyToken, async (req, res) => {
   try {
-    const { type, startDate, endDate } = req.query;
+    const { type, startDate, endDate, sharedAccountId } = req.query;
     
     // If no query parameters, return all expenses for the user
     if (!type && !startDate && !endDate) {
-      const expenses = await Expense.find({
-        userId: req.userId
-      }).sort({ date: 1 });
+      const query = {
+        $or: [
+          { userId: req.userId },
+          { sharedAccountId: sharedAccountId }
+        ]
+      };
+
+      const expenses = await Expense.find(query).sort({ date: 1 });
 
       // Format data for chart display
       const chartData = expenses.map(expense => ({
@@ -757,13 +812,24 @@ app.get('/api/data/chart', verifyToken, async (req, res) => {
     console.log('Date range:', { start, end });
 
     if (type === 'expense') {
-      const expenses = await Expense.find({
-        userId: req.userId,
+      const query = {
         date: {
           $gte: start,
           $lte: end
         }
-      }).sort({ date: 1 });
+      };
+
+      // If sharedAccountId is provided, include those expenses
+      if (sharedAccountId) {
+        query.$or = [
+          { userId: req.userId, sharedAccountId },
+          { sharedAccountId }
+        ];
+      } else {
+        query.userId = req.userId;
+      }
+
+      const expenses = await Expense.find(query).sort({ date: 1 });
 
       console.log('Found expenses:', expenses.length);
 
@@ -782,5 +848,387 @@ app.get('/api/data/chart', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('Error fetching chart data:', err);
     return res.status(500).json({ message: 'Error fetching chart data' });
+  }
+});
+
+// Add new endpoints for super categories
+app.post('/api/expenses/super-categories', verifyToken, async (req, res) => {
+  const { name, startDate, endDate } = req.body;
+  
+  if (!name || !startDate || !endDate) {
+    return res.status(400).json({ message: 'Name, start date, and end date are required' });
+  }
+
+  try {
+    console.log('Creating super category:', { name, startDate, endDate });
+    
+    // Set time to start and end of day for proper date comparison
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    console.log('Date range for query:', { start, end });
+    
+    // Find all expenses in the date range
+    const expenses = await Expense.find({
+      userId: req.userId,
+      date: {
+        $gte: start,
+        $lte: end
+      }
+    });
+
+    console.log('Found expenses to update:', expenses.length);
+    console.log('Sample expense:', expenses[0]);
+
+    // Update all expenses in the date range with the super category
+    const updatedExpenses = await Promise.all(
+      expenses.map(expense => 
+        Expense.findByIdAndUpdate(
+          expense._id,
+          {
+            superCategory: name,
+            superCategoryStartDate: start,
+            superCategoryEndDate: end
+          },
+          { new: true }
+        )
+      )
+    );
+
+    console.log('Updated expenses:', updatedExpenses.length);
+
+    // Calculate total and format response
+    const total = updatedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const response = {
+      name,
+      startDate: start,
+      endDate: end,
+      expenses: updatedExpenses,
+      total
+    };
+
+    console.log('Sending response:', response);
+
+    res.json(response);
+  } catch (err) {
+    console.error('Error adding super category:', err);
+    res.status(500).json({ message: 'Failed to add super category' });
+  }
+});
+
+app.get('/api/expenses/super-categories', verifyToken, async (req, res) => {
+  try {
+    console.log('Fetching super categories for user:', req.userId);
+    
+    const expenses = await Expense.find({
+      userId: req.userId,
+      superCategory: { $exists: true, $ne: null }
+    }).sort({ date: -1 });
+
+    console.log('Found expenses with super categories:', expenses.length);
+    if (expenses.length > 0) {
+      console.log('Sample expense:', expenses[0]);
+    }
+
+    // Group expenses by super category
+    const superCategories = expenses.reduce((acc, expense) => {
+      if (!acc[expense.superCategory]) {
+        acc[expense.superCategory] = {
+          name: expense.superCategory,
+          startDate: expense.superCategoryStartDate,
+          endDate: expense.superCategoryEndDate,
+          expenses: [],
+          total: 0
+        };
+      }
+      acc[expense.superCategory].expenses.push(expense);
+      acc[expense.superCategory].total += expense.amount;
+      return acc;
+    }, {});
+
+    const result = Object.values(superCategories);
+    console.log('Returning super categories:', result.length);
+    if (result.length > 0) {
+      console.log('Sample super category:', result[0]);
+    }
+    
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching super categories:', err);
+    res.status(500).json({ message: 'Failed to fetch super categories' });
+  }
+});
+
+app.delete('/api/expenses/super-categories/:name', verifyToken, async (req, res) => {
+  const { name } = req.params;
+
+  try {
+    const result = await Expense.updateMany(
+      { 
+        userId: req.userId,
+        superCategory: name
+      },
+      {
+        $unset: {
+          superCategory: "",
+          superCategoryStartDate: "",
+          superCategoryEndDate: ""
+        }
+      }
+    );
+
+    res.json({ message: 'Super category removed successfully', modified: result.modifiedCount });
+  } catch (err) {
+    console.error('Error removing super category:', err);
+    res.status(500).json({ message: 'Failed to remove super category' });
+  }
+});
+
+// Create a transporter for sending emails
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// Add the new endpoint for sending statements
+app.post('/api/expenses/send-statement', verifyToken, async (req, res) => {
+  const { statementName, startDate, endDate } = req.body;
+
+  try {
+    // Find all expenses in the date range
+    const expenses = await Expense.find({
+      userId: req.userId,
+      date: {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      }
+    }).sort({ date: 1 });
+
+    // Calculate total
+    const total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+    // Create email content
+    const emailContent = `
+      <h2>${statementName}</h2>
+      <p>Period: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}</p>
+      <h3>Total: ₹${total.toFixed(2)}</h3>
+      <h4>Expenses:</h4>
+      <ul>
+        ${expenses.map(exp => `
+          <li>
+            ${new Date(exp.date).toLocaleDateString()} - ${exp.category}: ₹${exp.amount}
+            ${exp.description ? ` - ${exp.description}` : ''}
+          </li>
+        `).join('')}
+      </ul>
+    `;
+
+    // Send email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: 'rkant062@gmail.com',
+      subject: `Expense Statement: ${statementName}`,
+      html: emailContent
+    });
+
+    res.json({ message: 'Statement sent successfully' });
+  } catch (err) {
+    console.error('Error sending statement:', err);
+    res.status(500).json({ message: 'Failed to send statement' });
+  }
+});
+
+// Add new endpoints for shared accounts
+app.post('/api/shared-accounts', verifyToken, async (req, res) => {
+  const { name } = req.body;
+  
+  try {
+    // Generate a unique share token
+    const shareToken = crypto.randomBytes(16).toString('hex');
+    
+    const sharedAccount = new SharedAccount({
+      name,
+      owner: req.userId,
+      shareToken,
+      collaborators: []
+    });
+
+    await sharedAccount.save();
+    res.json({ 
+      message: 'Shared account created successfully',
+      sharedAccount
+    });
+  } catch (err) {
+    console.error('Error creating shared account:', err);
+    res.status(500).json({ message: 'Failed to create shared account' });
+  }
+});
+
+// Add endpoint to get a specific shared account
+app.get('/api/shared-accounts/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const sharedAccount = await SharedAccount.findOne({
+      _id: id,
+      $or: [
+        { owner: req.userId },
+        { collaborators: req.userId }
+      ],
+      isActive: true
+    });
+
+    if (!sharedAccount) {
+      return res.status(404).json({ message: 'Shared account not found or unauthorized' });
+    }
+
+    res.json(sharedAccount);
+  } catch (err) {
+    console.error('Error fetching shared account:', err);
+    res.status(500).json({ message: 'Failed to fetch shared account' });
+  }
+});
+
+app.get('/api/shared-accounts', verifyToken, async (req, res) => {
+  try {
+    const sharedAccounts = await SharedAccount.find({
+      $or: [
+        { owner: req.userId },
+        { collaborators: req.userId }
+      ],
+      isActive: true
+    }).populate('owner', 'username').populate('collaborators', 'username');
+
+    res.json(sharedAccounts);
+  } catch (err) {
+    console.error('Error fetching shared accounts:', err);
+    res.status(500).json({ message: 'Failed to fetch shared accounts' });
+  }
+});
+
+app.post('/api/shared-accounts/join', verifyToken, async (req, res) => {
+  const { shareToken } = req.body;
+
+  try {
+    const sharedAccount = await SharedAccount.findOne({ 
+      shareToken,
+      isActive: true
+    });
+
+    if (!sharedAccount) {
+      return res.status(404).json({ message: 'Invalid or expired share token' });
+    }
+
+    // Check if user is already a collaborator
+    if (sharedAccount.collaborators.includes(req.userId)) {
+      return res.status(400).json({ message: 'Already a collaborator' });
+    }
+
+    // Add user as collaborator
+    sharedAccount.collaborators.push(req.userId);
+    await sharedAccount.save();
+
+    res.json({ 
+      message: 'Successfully joined shared account',
+      sharedAccount
+    });
+  } catch (err) {
+    console.error('Error joining shared account:', err);
+    res.status(500).json({ message: 'Failed to join shared account' });
+  }
+});
+
+app.delete('/api/shared-accounts/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const sharedAccount = await SharedAccount.findOne({
+      _id: id,
+      owner: req.userId
+    });
+
+    if (!sharedAccount) {
+      return res.status(404).json({ message: 'Shared account not found or unauthorized' });
+    }
+
+    // Soft delete by setting isActive to false
+    sharedAccount.isActive = false;
+    await sharedAccount.save();
+
+    res.json({ message: 'Shared account deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting shared account:', err);
+    res.status(500).json({ message: 'Failed to delete shared account' });
+  }
+});
+
+// Add new endpoint to get all expenses with user details
+app.get('/api/expenses/all', verifyToken, async (req, res) => {
+  try {
+    const { sharedAccountId } = req.query;
+    
+    const query = {};
+    if (sharedAccountId) {
+      query.sharedAccountId = sharedAccountId;
+    } else {
+      query.userId = req.userId;
+    }
+
+    const expenses = await Expense.find(query)
+      .sort({ date: -1 }) // Most recent first
+      .populate('userId', 'username'); // Get username from User model
+
+    // Format the response
+    const formattedExpenses = expenses.map(expense => ({
+      _id: expense._id, // Include the expense ID
+      date: expense.date,
+      user: expense.userId.username,
+      cost: expense.amount,
+      category: expense.category
+    }));
+
+    res.json(formattedExpenses);
+  } catch (err) {
+    console.error('Error fetching all expenses:', err);
+    res.status(500).json({ message: 'Failed to fetch expenses' });
+  }
+});
+
+app.delete('/api/expenses/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const expense = await Expense.findById(id);
+    
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Check if user has permission to delete (either owner or part of shared account)
+    if (expense.userId.toString() !== req.userId) {
+      const sharedAccount = await SharedAccount.findOne({
+        _id: expense.sharedAccountId,
+        $or: [
+          { owner: req.userId },
+          { collaborators: req.userId }
+        ]
+      });
+      
+      if (!sharedAccount) {
+        return res.status(403).json({ message: 'Not authorized to delete this expense' });
+      }
+    }
+
+    await Expense.findByIdAndDelete(id);
+    res.json({ message: 'Expense deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting expense:', err);
+    res.status(500).json({ message: 'Failed to delete expense' });
   }
 });
