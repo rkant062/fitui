@@ -1,0 +1,338 @@
+/* Coffee & Cozy Theme Styles */
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Dancing+Script:wght@400;500;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+/* Root Variables */
+:root {
+  /* Coffee Color Palette */
+  --coffee-dark: #3C2415;
+  --coffee-medium: #8B4513;
+  --coffee-light: #A0522D;
+  --coffee-cream: #F5E6D3;
+  --coffee-milk: #FFF8F0;
+  --coffee-foam: #FDF6E3;
+  
+  /* Accent Colors */
+  --accent-gold: #D4AF37;
+  --accent-rust: #B7410E;
+  --accent-sage: #9CAF88;
+  --accent-terracotta: #E2725B;
+  
+  /* Neutral Colors */
+  --neutral-dark: #2C2C2C;
+  --neutral-medium: #6B6B6B;
+  --neutral-light: #E5E5E5;
+  --neutral-white: #FFFFFF;
+  
+  /* Typography */
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-brand: 'Dancing Script', cursive;
+  --font-elegant: 'Crimson Text', serif;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-coffee: 0 4px 20px rgba(139, 69, 19, 0.15);
+}
+
+/* Global Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  line-height: 1.6;
+  color: var(--neutral-dark);
+  background-color: var(--coffee-foam);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--coffee-dark);
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+/* Coffee-themed Components */
+.coffee-card {
+  background: linear-gradient(135deg, var(--coffee-milk) 0%, var(--coffee-cream) 100%);
+  border: 1px solid var(--coffee-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-coffee);
+  transition: all 0.3s ease;
+}
+
+.coffee-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 69, 19, 0.2);
+}
+
+.coffee-button {
+  background: linear-gradient(135deg, var(--coffee-medium) 0%, var(--coffee-light) 100%);
+  color: var(--neutral-white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.coffee-button:hover {
+  background: linear-gradient(135deg, var(--coffee-light) 0%, var(--coffee-medium) 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.coffee-button:active {
+  transform: translateY(0);
+}
+
+/* Tag Styles */
+.brew-mood-tag {
+  background-color: rgba(139, 69, 19, 0.1);
+  color: var(--coffee-medium);
+  border: 1px solid var(--coffee-light);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-block;
+  margin: var(--spacing-xs);
+}
+
+.pairs-well-tag {
+  background-color: rgba(108, 70, 193, 0.1);
+  color: var(--accent-sage);
+  border: 1px solid var(--accent-sage);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-block;
+  margin: var(--spacing-xs);
+}
+
+/* Badge Styles */
+.new-badge {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+  color: var(--neutral-white);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.7rem;
+  font-weight: 600;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* Weekly Brew Section */
+.weekly-brew {
+  background: linear-gradient(135deg, var(--coffee-medium) 0%, var(--coffee-light) 100%);
+  color: var(--neutral-white);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xxl);
+  margin: var(--spacing-xl) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.weekly-brew::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.3;
+}
+
+.weekly-brew-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Engagement Button */
+.engage-button {
+  background: transparent;
+  color: var(--coffee-medium);
+  border: 1px solid var(--coffee-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: none;
+}
+
+.engage-button:hover {
+  background-color: rgba(139, 69, 19, 0.04);
+  border-color: var(--coffee-medium);
+  transform: translateY(-1px);
+}
+
+/* Reading Time */
+.brew-length-read {
+  color: var(--neutral-medium);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Category Colors */
+.category-coffee-culture { background-color: var(--coffee-medium); }
+.category-mind-brew { background-color: var(--accent-sage); }
+.category-local-roasts { background-color: var(--accent-rust); }
+.category-breww-wanderer { background-color: var(--accent-terracotta); }
+.category-creators-corner { background-color: var(--accent-gold); }
+.category-start-something { background-color: #7C3AED; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  .weekly-brew {
+    padding: var(--spacing-lg);
+  }
+  
+  .coffee-card {
+    margin: var(--spacing-sm);
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --coffee-foam: #1A1A1A;
+    --coffee-cream: #2A2A2A;
+    --neutral-dark: #E5E5E5;
+    --neutral-medium: #B0B0B0;
+    --neutral-light: #404040;
+    --neutral-white: #FFFFFF;
+  }
+  
+  body {
+    background-color: var(--coffee-foam);
+    color: var(--neutral-dark);
+  }
+  
+  .coffee-card {
+    background: linear-gradient(135deg, var(--coffee-cream) 0%, #3A3A3A 100%);
+    border-color: var(--neutral-light);
+  }
+}
+
+/* Animation Classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Utility Classes */
+.text-coffee { color: var(--coffee-medium); }
+.bg-coffee { background-color: var(--coffee-cream); }
+.border-coffee { border-color: var(--coffee-light); }
+.shadow-coffee { box-shadow: var(--shadow-coffee); }
+
+.font-heading { font-family: var(--font-heading); }
+.font-body { font-family: var(--font-body); }
+.font-brand { font-family: var(--font-brand); }
+.font-elegant { font-family: var(--font-elegant); }
+
+/* Brand Styling */
+.brand-logo {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, var(--coffee-medium) 0%, var(--coffee-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(139, 69, 19, 0.1);
+  letter-spacing: 0.5px;
+}
+
+.brand-logo-large {
+  font-family: var(--font-brand);
+  font-weight: 700;
+  font-size: 3.5rem;
+  background: linear-gradient(135deg, var(--coffee-medium) 0%, var(--coffee-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 8px rgba(139, 69, 19, 0.15);
+  letter-spacing: 1px;
+}
+
+.brand-subtitle {
+  font-family: var(--font-elegant);
+  font-style: italic;
+  color: var(--coffee-medium);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+.rounded-coffee { border-radius: var(--radius-lg); }
+.padding-coffee { padding: var(--spacing-lg); }
+.margin-coffee { margin: var(--spacing-lg); }
